@@ -1,19 +1,20 @@
-import { useEffect, useState, type KeyboardEvent } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import type { CardRow, NoteRow } from '@/types'
-import { InfoIcon, PlayIcon } from '@/components/icons'
-import { parseCloze } from '@/study/cloze'
-import { promptSizeCls } from '@/study/promptSize'
-import { cardSpeakSource, type SpeakSource } from '@/speech/audioSource'
-import { DetailsPanel, DETAILS_LABEL } from '@/study/DetailsPanel'
-import { useSpeechContext } from '@/speech/useSpeechContext'
-import { Spinner } from '@/components/Loading'
+import { useEffect, useState, type KeyboardEvent } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import type { CardRow, NoteRow } from "@/types";
+import { InfoIcon, PlayIcon } from "@/components/icons";
+import { fieldCls } from "@/components/formStyles";
+import { parseCloze } from "@/study/cloze";
+import { promptSizeCls } from "@/study/promptSize";
+import { cardSpeakSource, type SpeakSource } from "@/speech/audioSource";
+import { DetailsPanel, DETAILS_LABEL } from "@/study/DetailsPanel";
+import { useSpeechContext } from "@/speech/useSpeechContext";
+import { Spinner } from "@/components/Loading";
 
-const DIRECTION_LABEL: Record<CardRow['direction'], string> = {
-  forward: 'EN → RU',
-  reverse: 'RU → EN',
-  cloze: 'ПРОПУСК',
-}
+const DIRECTION_LABEL: Record<CardRow["direction"], string> = {
+  forward: "EN → RU",
+  reverse: "RU → EN",
+  cloze: "ПРОПУСК",
+};
 
 /**
  * Кнопка info: одна на оба типа карточек. Раньше обычная карточка и cloze
@@ -25,8 +26,8 @@ function DetailsButton({ onOpen }: { onOpen: () => void }) {
     <button
       type="button"
       onClick={(e) => {
-        e.stopPropagation()
-        onOpen()
+        e.stopPropagation();
+        onOpen();
       }}
       aria-label={DETAILS_LABEL}
       title={DETAILS_LABEL}
@@ -34,7 +35,7 @@ function DetailsButton({ onOpen }: { onOpen: () => void }) {
     >
       <InfoIcon className="size-4" />
     </button>
-  )
+  );
 }
 
 /**
@@ -48,26 +49,26 @@ function DetailsButton({ onOpen }: { onOpen: () => void }) {
 function SpeakButton({
   source,
   onPlay,
-  size = 'lg',
+  size = "lg",
 }: {
-  source: SpeakSource
-  onPlay: (source: SpeakSource) => void
-  size?: 'lg' | 'sm'
+  source: SpeakSource;
+  onPlay: (source: SpeakSource) => void;
+  size?: "lg" | "sm";
 }) {
-  const lg = size === 'lg'
+  const lg = size === "lg";
   // Ждём облако - показываем это на самой кнопке (см. `SpeakInline`).
   // У слова с живой записью OneLook ожидания нет: там играет mp3 напрямую.
-  const { pendingText } = useSpeechContext()
-  const loading = pendingText === source.text
+  const { pendingText } = useSpeechContext();
+  const loading = pendingText === source.text;
 
   // Отклик на нажатие - как у `SpeakInline`: при попадании в кэш звук идёт
   // мгновенно, и без этого на мобиле непонятно, засчитался ли тап.
-  const [hit, setHit] = useState(false)
+  const [hit, setHit] = useState(false);
   useEffect(() => {
-    if (!hit) return
-    const t = setTimeout(() => setHit(false), 450)
-    return () => clearTimeout(t)
-  }, [hit])
+    if (!hit) return;
+    const t = setTimeout(() => setHit(false), 450);
+    return () => clearTimeout(t);
+  }, [hit]);
 
   return (
     <button
@@ -75,21 +76,21 @@ function SpeakButton({
       aria-label="Озвучить"
       aria-busy={loading}
       onClick={(e) => {
-        e.stopPropagation()
-        setHit(true)
-        onPlay(source)
+        e.stopPropagation();
+        setHit(true);
+        onPlay(source);
       }}
       className={`flex shrink-0 cursor-pointer items-center justify-center rounded-full bg-brand text-white transition-transform duration-150 active:scale-90 ${
-        hit || loading ? 'scale-105 brightness-110' : ''
-      } ${lg ? 'size-14 shadow-fab lg:size-[54px]' : 'size-9'}`}
+        hit || loading ? "scale-105 brightness-110" : ""
+      } ${lg ? "size-14 shadow-fab lg:size-[54px]" : "size-9"}`}
     >
       {loading ? (
         <Spinner size={lg ? 24 : 16} />
       ) : (
-        <PlayIcon className={lg ? 'size-6' : 'size-4'} />
+        <PlayIcon className={lg ? "size-6" : "size-4"} />
       )}
     </button>
-  )
+  );
 }
 
 /**
@@ -97,28 +98,34 @@ function SpeakButton({
  * а лёгкая ghost-иконка. При нескольких примерах ряд больших кнопок нагромождал
  * бы карточку - здесь икон приглушён и зеленеет только при наведении.
  */
-function SpeakInline({ text, onSpeak }: { text: string; onSpeak: (text: string) => void }) {
+function SpeakInline({
+  text,
+  onSpeak,
+}: {
+  text: string;
+  onSpeak: (text: string) => void;
+}) {
   // Облачный синтез отвечает секунды, и без отклика клик выглядит как «не
   // нажалось». Сравниваем с текстом, а не держим булев флаг: озвучка одна на
   // приложение, и флаг зажёг бы лоадеры на всех кнопках разом.
-  const { pendingText } = useSpeechContext()
-  const loading = pendingText === text
+  const { pendingText } = useSpeechContext();
+  const loading = pendingText === text;
 
   // Короткая подсветка сразу после нажатия. Одного лоадера мало: при попадании
   // в кэш (а после прогрева это обычный случай) звук идёт мгновенно,
   // `pendingText` не успевает выставиться, и на мобиле кнопка выглядела
   // полностью безответной - `hover:` там не существует, а `active:scale-95` на
   // иконке 28px глазом не читается.
-  const [hit, setHit] = useState(false)
+  const [hit, setHit] = useState(false);
   useEffect(() => {
-    if (!hit) return
-    const t = setTimeout(() => setHit(false), 450)
-    return () => clearTimeout(t)
-  }, [hit])
+    if (!hit) return;
+    const t = setTimeout(() => setHit(false), 450);
+    return () => clearTimeout(t);
+  }, [hit]);
 
   // Пока ждём синтез, подсветка держится: лоадер и так виден, но фон не должен
   // моргать между «нажал» и «поехало».
-  const lit = hit || loading
+  const lit = hit || loading;
 
   return (
     <button
@@ -126,9 +133,9 @@ function SpeakInline({ text, onSpeak }: { text: string; onSpeak: (text: string) 
       aria-label="Озвучить пример"
       aria-busy={loading}
       onClick={(e) => {
-        e.stopPropagation()
-        setHit(true)
-        onSpeak(text)
+        e.stopPropagation();
+        setHit(true);
+        onSpeak(text);
       }}
       // `before:` растягивает область нажатия до 44px (минимум Apple HIG),
       // не трогая видимый размер: сама иконка в ряду примеров должна остаться
@@ -137,13 +144,13 @@ function SpeakInline({ text, onSpeak }: { text: string; onSpeak: (text: string) 
       // как «кнопка не реагирует».
       className={`relative flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-[background-color,color,transform] duration-150 before:absolute before:left-1/2 before:top-1/2 before:size-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] active:scale-90 ${
         lit
-          ? 'scale-110 bg-brand-soft text-brand'
-          : 'text-faint hover:bg-brand-tint hover:text-brand'
+          ? "scale-110 bg-brand-soft text-brand"
+          : "text-faint hover:bg-brand-tint hover:text-brand"
       }`}
     >
       {loading ? <Spinner size={14} /> : <PlayIcon className="size-3.5" />}
     </button>
-  )
+  );
 }
 
 /**
@@ -156,7 +163,8 @@ function ClozeBlank({ hint }: { hint?: string }) {
   // при переносе строк давали кривизну и налезание. Есть подсказка - это тинт-
   // пилюля с русским намёком (мелкий, приглушённый - явно не ответ). Нет - пустой
   // подчёркнутый слот той же высоты. Ставим на базовую линию текста вокруг.
-  const boxCls = 'mx-1 inline-flex min-w-16 items-center justify-center rounded-lg align-baseline'
+  const boxCls =
+    "mx-1 inline-flex min-w-16 items-center justify-center rounded-lg align-baseline";
   if (hint) {
     return (
       <span
@@ -164,14 +172,51 @@ function ClozeBlank({ hint }: { hint?: string }) {
       >
         {hint}
       </span>
-    )
+    );
   }
-  return <span className={`${boxCls} w-24 border-b-[3px] border-brand`}>&#8203;</span>
+  return (
+    <span className={`${boxCls} w-24 border-b-[3px] border-brand`}>
+      &#8203;
+    </span>
+  );
 }
 
 function Transcription({ value }: { value: string | null }) {
-  if (!value) return null
-  return <span className="text-hint font-medium">{value}</span>
+  if (!value) return null;
+  return <span className="text-hint font-medium">{value}</span>;
+}
+
+function TypedAnswer({
+  value,
+  onChange,
+  onSubmit,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="w-full px-4 pb-4">
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          onSubmit();
+        }}
+        aria-label="Напишите ответ"
+        placeholder="Напишите ответ"
+        className={fieldCls}
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+        autoFocus
+      />
+    </div>
+  );
 }
 
 /** Лицо карточки - зависит от направления. */
@@ -179,33 +224,47 @@ function CardFront({
   card,
   note,
   hidden,
+  typedAnswer,
+  typedAnswerEnabled,
+  onTypedAnswerChange,
+  onTypedAnswerSubmit,
   onPlay,
 }: {
-  card: CardRow
-  note: NoteRow
-  hidden: boolean
-  onPlay: (source: SpeakSource) => void
+  card: CardRow;
+  note: NoteRow;
+  hidden: boolean;
+  typedAnswer: string;
+  typedAnswerEnabled: boolean;
+  onTypedAnswerChange: (value: string) => void;
+  onTypedAnswerSubmit: () => void;
+  onPlay: (source: SpeakSource) => void;
 }) {
-  const isCloze = card.direction === 'cloze'
-  const prompt = card.direction === 'reverse' ? (note.back ?? '') : note.front
+  const isCloze = card.direction === "cloze";
+  const prompt = card.direction === "reverse" ? (note.back ?? "") : note.front;
   // Для cloze озвучивается предложение целиком (без разметки пропусков), для
   // forward - само слово; что именно и каким голосом, решает `cardSpeakSource`.
-  const source = cardSpeakSource(note, card.direction)
+  const source = cardSpeakSource(note, card.direction);
 
   return (
     <div
       inert={hidden}
-      className="absolute inset-0 flex flex-col items-center rounded-card-lg bg-card p-7 shadow-flip [backface-visibility:hidden] lg:rounded-[26px] lg:p-10"
+      className="absolute inset-0 flex flex-col items-center rounded-card-lg bg-card pt-7 shadow-flip [backface-visibility:hidden] lg:rounded-[26px] lg:pt-10"
     >
-      <span className="self-start rounded-pill bg-brand-soft px-3 py-1.5 text-[11px] font-extrabold tracking-[0.05em] text-brand-ink">
-        {DIRECTION_LABEL[card.direction]}
-      </span>
+      <div className="w-full px-7 lg:px-10">
+        <span className="self-start rounded-pill bg-brand-soft px-3 py-1.5 text-[11px] font-extrabold tracking-[0.05em] text-brand-ink">
+          {DIRECTION_LABEL[card.direction]}
+        </span>
+      </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-7 text-center lg:px-10">
         {isCloze ? (
           <p className="text-2xl leading-relaxed font-bold text-ink lg:text-[32px] lg:leading-relaxed">
             {parseCloze(note.front).map((seg, i) =>
-              seg.blank ? <ClozeBlank key={i} hint={seg.hint} /> : <span key={i}>{seg.text}</span>,
+              seg.blank ? (
+                <ClozeBlank key={i} hint={seg.hint} />
+              ) : (
+                <span key={i}>{seg.text}</span>
+              ),
             )}
           </p>
         ) : (
@@ -217,15 +276,23 @@ function CardFront({
         )}
 
         {/* Озвучка - только для английской стороны */}
-        {card.direction !== 'reverse' && (
+        {card.direction !== "reverse" && (
           <div className="flex flex-col items-center gap-4 lg:flex-row lg:gap-4">
             <SpeakButton source={source} onPlay={onPlay} />
             <Transcription value={note.transcription} />
           </div>
         )}
       </div>
+
+      {typedAnswerEnabled && (
+        <TypedAnswer
+          value={typedAnswer}
+          onChange={onTypedAnswerChange}
+          onSubmit={onTypedAnswerSubmit}
+        />
+      )}
     </div>
-  )
+  );
 }
 
 /** Оборот карточки - зависит от направления. */
@@ -237,15 +304,15 @@ function CardBack({
   onPlay,
   onOpenDetails,
 }: {
-  card: CardRow
-  note: NoteRow
-  hidden: boolean
+  card: CardRow;
+  note: NoteRow;
+  hidden: boolean;
   /** Озвучка примеров - всегда синтез (словарное аудио записано под слово). */
-  onSpeak: (text: string) => void
-  onPlay: (source: SpeakSource) => void
-  onOpenDetails: () => void
+  onSpeak: (text: string) => void;
+  onPlay: (source: SpeakSource) => void;
+  onOpenDetails: () => void;
 }) {
-  const source = cardSpeakSource(note, card.direction)
+  const source = cardSpeakSource(note, card.direction);
   return (
     // `inert` (а не только aria-hidden): убирает невидимую сторону и из
     // скринридера, и из поиска по странице, и из таб-порядка - иначе ответ
@@ -254,7 +321,7 @@ function CardBack({
       inert={hidden}
       className="absolute inset-0 flex flex-col overflow-y-auto rounded-card-lg bg-card p-6 shadow-flip [backface-visibility:hidden] [transform:rotateY(180deg)] lg:rounded-[26px] lg:p-8"
     >
-      {card.direction === 'cloze' ? (
+      {card.direction === "cloze" ? (
         <div className="flex items-center gap-3">
           <p className="min-w-0 flex-1 text-xl leading-relaxed font-bold text-ink lg:text-2xl lg:leading-relaxed">
             {parseCloze(note.front).map((seg, i) =>
@@ -277,7 +344,9 @@ function CardBack({
         </div>
       ) : (
         <div className="flex items-center gap-3">
-          <span className="text-[26px] font-extrabold text-ink lg:text-[38px]">{note.front}</span>
+          <span className="text-[26px] font-extrabold text-ink lg:text-[38px]">
+            {note.front}
+          </span>
           <SpeakButton source={source} onPlay={onPlay} size="sm" />
           <Transcription value={note.transcription} />
           {note.details && <DetailsButton onOpen={onOpenDetails} />}
@@ -294,7 +363,7 @@ function CardBack({
       {note.examples.length > 0 && (
         <div className="mt-5">
           <p className="mb-2 text-[11px] font-extrabold tracking-[0.06em] text-label uppercase">
-            {note.examples.length > 1 ? 'Примеры' : 'Пример'}
+            {note.examples.length > 1 ? "Примеры" : "Пример"}
           </p>
           <ul className="flex flex-col gap-3">
             {note.examples.map((example, i) => (
@@ -303,7 +372,9 @@ function CardBack({
                     чтобы ряд не нагромождался при нескольких примерах. */}
                 <SpeakInline text={example.text} onSpeak={onSpeak} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[15.5px] leading-relaxed text-ink-2">{example.text}</p>
+                  <p className="text-[15.5px] leading-relaxed text-ink-2">
+                    {example.text}
+                  </p>
                   {example.translation && (
                     <p className="mt-0.5 text-sm leading-relaxed text-faint-2">
                       {example.translation}
@@ -316,36 +387,47 @@ function CardBack({
         </div>
       )}
     </div>
-  )
+  );
 }
 
 export function StudyCard({
   card,
   note,
   revealed,
+  typedAnswerEnabled = false,
   onFlip,
   onSpeak,
   onPlay,
 }: {
-  card: CardRow
-  note: NoteRow
-  revealed: boolean
-  onFlip: () => void
+  card: CardRow;
+  note: NoteRow;
+  revealed: boolean;
+  typedAnswerEnabled?: boolean;
+  onFlip: () => void;
   /** Синтез произвольного текста - для примеров. */
-  onSpeak: (text: string) => void
+  onSpeak: (text: string) => void;
   /** Озвучка главного слова: живой голос словаря с фолбэком на синтез. */
-  onPlay: (source: SpeakSource) => void
+  onPlay: (source: SpeakSource) => void;
 }) {
-  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [typedAnswer, setTypedAnswer] = useState("");
 
   // Смена карточки закрывает панель: обёртка флипа перемонтируется по key,
   // но сам StudyCard - нет, поэтому состояние сбрасываем вручную.
-  useEffect(() => setDetailsOpen(false), [card.id])
+  useEffect(() => {
+    setDetailsOpen(false);
+    setTypedAnswer("");
+  }, [card.id]);
 
   // При скрытии ответа (Undo возвращает на лицо) панель тоже не должна остаться.
   useEffect(() => {
-    if (!revealed) setDetailsOpen(false)
-  }, [revealed])
+    if (!revealed) setDetailsOpen(false);
+  }, [revealed]);
+
+  const revealFromTypedAnswer = () => {
+    if (typedAnswer.trim().length === 0) return;
+    onFlip();
+  };
 
   return (
     <div className="[perspective:1700px] relative flex-1 lg:h-[380px] lg:w-[560px] lg:flex-none">
@@ -368,24 +450,33 @@ export function StudyCard({
             в `useStudyHotkeys`, дублировать его здесь значит обработать нажатие
             дважды, когда фокус на карточке. */}
         <div
-          {...(revealed
+          {...(revealed || typedAnswerEnabled
             ? {}
             : {
-                role: 'button',
+                role: "button",
                 tabIndex: 0,
                 onClick: onFlip,
                 onKeyDown: (e: KeyboardEvent) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    onFlip()
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onFlip();
                   }
                 },
-                'aria-label': 'Показать ответ',
+                "aria-label": "Показать ответ",
               })}
-          className={`absolute inset-0 text-left [transform-style:preserve-3d] transition-transform duration-[550ms] ease-[cubic-bezier(.4,0,.2,1)] ${revealed ? '' : 'cursor-pointer'}`}
-          style={{ transform: revealed ? 'rotateY(180deg)' : undefined }}
+          className={`absolute inset-0 text-left [transform-style:preserve-3d] transition-transform duration-[550ms] ease-[cubic-bezier(.4,0,.2,1)] ${revealed ? "" : "cursor-pointer"}`}
+          style={{ transform: revealed ? "rotateY(180deg)" : undefined }}
         >
-          <CardFront card={card} note={note} hidden={revealed} onPlay={onPlay} />
+          <CardFront
+            card={card}
+            note={note}
+            hidden={revealed}
+            typedAnswer={typedAnswer}
+            typedAnswerEnabled={typedAnswerEnabled}
+            onTypedAnswerChange={setTypedAnswer}
+            onTypedAnswerSubmit={revealFromTypedAnswer}
+            onPlay={onPlay}
+          />
           <CardBack
             card={card}
             note={note}
@@ -400,10 +491,13 @@ export function StudyCard({
             Живёт на том же слое, что и обёртка появления. */}
         <AnimatePresence>
           {detailsOpen && note.details && (
-            <DetailsPanel markdown={note.details} onClose={() => setDetailsOpen(false)} />
+            <DetailsPanel
+              markdown={note.details}
+              onClose={() => setDetailsOpen(false)}
+            />
           )}
         </AnimatePresence>
       </motion.div>
     </div>
-  )
+  );
 }

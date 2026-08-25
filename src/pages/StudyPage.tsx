@@ -45,6 +45,14 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
 /** Сколько примеров следующей карточки греем заранее. */
 const PREFETCH_EXAMPLES = 2;
 
+function typedAnswerTurn(cardId: string, done: number): boolean {
+  let hash = 0;
+  for (let i = 0; i < cardId.length; i += 1) {
+    hash = (hash * 31 + cardId.charCodeAt(i)) >>> 0;
+  }
+  return (hash + done) % 3 === 0;
+}
+
 export function StudyPage() {
   const [params, setParams] = useSearchParams();
   const started = params.get("go") === "1";
@@ -234,6 +242,8 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
   if (!current) return null;
 
   const total = done + counts.total;
+  const typedAnswerEnabled =
+    !revealed && typedAnswerTurn(current.card.id, done);
   // Ярлык области: одна папка - её имя, несколько - счётчик, иначе «все».
   const scopeLabel =
     scope.kind === "folders"
@@ -314,6 +324,7 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
           card={current.card}
           note={current.note}
           revealed={revealed}
+          typedAnswerEnabled={typedAnswerEnabled}
           onFlip={reveal}
           // Примеры - это фразы: живой записи для них не существует, поэтому
           // озвучивает облако (§6), а локальный синтез остаётся фолбэком.
