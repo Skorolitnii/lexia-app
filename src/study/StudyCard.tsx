@@ -186,6 +186,110 @@ function Transcription({ value }: { value: string | null }) {
   return <span className="text-hint font-medium">{value}</span>;
 }
 
+function typedExpectedAnswer(card: CardRow, note: NoteRow): string {
+  if (card.direction === "reverse") return note.front;
+  if (card.direction === "cloze") {
+    return parseCloze(note.front)
+      .filter((seg) => seg.blank)
+      .map((seg) => seg.text)
+      .join(" ");
+  }
+  return note.back ?? "";
+}
+
+function normalizeAnswer(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[.,!?;:()[\]{}"«»]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function AnswerDiff({
+  expected,
+  actual,
+}: {
+  expected: string;
+  actual: string;
+}) {
+  const expectedWords = expected.trim().split(/\s+/).filter(Boolean);
+  const actualWords = actual.trim().split(/\s+/).filter(Boolean);
+
+  const rendered = actualWords.map((word, wordIndex) => {
+    const expectedWord = expectedWords[wordIndex];
+    if (!expectedWord) {
+      return (
+        <span key={wordIndex} className="text-again line-through decoration-2">
+          {word}
+        </span>
+      );
+    }
+    if (normalizeAnswer(word) === normalizeAnswer(expectedWord)) {
+      return <span key={wordIndex}>{word}</span>;
+    }
+
+    const sameShape =
+      actualWords.length === expectedWords.length &&
+      Math.abs(word.length - expectedWord.length) <= 2;
+
+    if (!sameShape) {
+      return (
+        <span key={wordIndex} className="text-again line-through decoration-2">
+          {word}
+        </span>
+      );
+    }
+
+    return (
+      <span key={wordIndex}>
+        {[...word].map((char, charIndex) => {
+          const bad =
+            normalizeAnswer(char) !==
+            normalizeAnswer(expectedWord[charIndex] ?? "");
+          return (
+            <span
+              key={charIndex}
+              className={
+                bad
+                  ? "rounded-[3px] bg-hard-soft px-0.5 text-hard underline decoration-hard decoration-2 underline-offset-4"
+                  : undefined
+              }
+            >
+              {char}
+            </span>
+          );
+        })}
+      </span>
+    );
+  });
+
+  return (
+    <div className="mt-4 grid gap-2 rounded-[18px] border border-line bg-card-soft p-3.5 lg:grid-cols-2">
+      <div className="min-w-0">
+        <div className="text-[11px] font-extrabold tracking-[0.06em] text-label uppercase">
+          Верный ответ
+        </div>
+        <div className="mt-1 break-words text-[16px] font-extrabold text-ink">
+          {expected}
+        </div>
+      </div>
+      <div className="min-w-0">
+        <div className="text-[11px] font-extrabold tracking-[0.06em] text-label uppercase">
+          Ваш ответ
+        </div>
+        <div className="mt-1 flex flex-wrap gap-x-1.5 gap-y-1 break-words text-[16px] font-extrabold text-ink">
+          {rendered}
+          {actualWords.length < expectedWords.length && (
+            <span className="text-hard underline decoration-hard decoration-2 underline-offset-4">
+              …
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TypedAnswer({
   value,
   onChange,
@@ -303,6 +407,7 @@ function CardBack({
   onSpeak,
   onPlay,
   onOpenDetails,
+  typedAnswer,
 }: {
   card: CardRow;
   note: NoteRow;
@@ -311,8 +416,10 @@ function CardBack({
   onSpeak: (text: string) => void;
   onPlay: (source: SpeakSource) => void;
   onOpenDetails: () => void;
+  typedAnswer: string | null;
 }) {
   const source = cardSpeakSource(note, card.direction);
+  const expectedTypedAnswer = typedExpectedAnswer(card, note);
   return (
     // `inert` (а не только aria-hidden): убирает невидимую сторону и из
     // скринридера, и из поиска по странице, и из таб-порядка - иначе ответ
@@ -351,6 +458,10 @@ function CardBack({
           <Transcription value={note.transcription} />
           {note.details && <DetailsButton onOpen={onOpenDetails} />}
         </div>
+      )}
+
+      {typedAnswer && expectedTypedAnswer && (
+        <AnswerDiff expected={expectedTypedAnswer} actual={typedAnswer} />
       )}
 
       {/* Перевод */}
@@ -484,6 +595,7 @@ export function StudyCard({
             onSpeak={onSpeak}
             onPlay={onPlay}
             onOpenDetails={() => setDetailsOpen(true)}
+            typedAnswer={typedAnswer.trim() ? typedAnswer : null}
           />
         </div>
 
