@@ -76,6 +76,9 @@ export interface Repository {
   /** Soft-delete заметки и её карточек. */
   deleteNote(id: string): Promise<void>
 
+  /** Soft-delete всех заметок в папке и их карточек, папку оставить. */
+  deleteNotesInFolder(folderId: string): Promise<void>
+
   createFolder(
     folder: Omit<FolderRow, 'user_id' | 'created_at' | 'updated_at' | 'deleted'>,
   ): Promise<FolderRow>

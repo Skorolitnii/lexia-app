@@ -301,6 +301,30 @@ export class SupabaseRepository implements Repository {
     if (note.error) throw new Error(note.error.message);
   }
 
+  async deleteNotesInFolder(folderId: string): Promise<void> {
+    // Папку оставляем, гасим только её слова и карточки. Порядок как в
+    // `deleteNote`: карточки раньше заметок, чтобы не осталось сирот в очереди.
+    const noteRows = await this.db
+      .from("notes")
+      .select("id")
+      .eq("deleted", false)
+      .eq("folder_id", folderId);
+    if (noteRows.error) throw new Error(noteRows.error.message);
+    const noteIds = (noteRows.data ?? []).map((n) => n.id);
+    if (noteIds.length > 0) {
+      const cards = await this.db
+        .from("cards")
+        .update({ deleted: true })
+        .in("note_id", noteIds);
+      if (cards.error) throw new Error(cards.error.message);
+    }
+    const notes = await this.db
+      .from("notes")
+      .update({ deleted: true })
+      .eq("folder_id", folderId);
+    if (notes.error) throw new Error(notes.error.message);
+  }
+
   async createFolder(
     input: Omit<FolderRow, "user_id" | "created_at" | "updated_at" | "deleted">,
   ): Promise<FolderRow> {

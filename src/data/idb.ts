@@ -274,6 +274,29 @@ export class IdbRepository implements Repository {
     ]);
   }
 
+  async deleteNotesInFolder(folderId: string): Promise<void> {
+    const notes = await getAll<NoteRow>(this.db, "notes");
+    const folderNotes = notes.filter(
+      (n) => n.folder_id === folderId && !n.deleted,
+    );
+    if (folderNotes.length === 0) return;
+    const noteIds = new Set(folderNotes.map((n) => n.id));
+    const cards = await getAll<CardRow>(this.db, "cards");
+    const ts = now();
+    await putAll(this.db, [
+      ...folderNotes.map((n) => ({
+        store: "notes" as const,
+        value: { ...n, deleted: true, updated_at: ts },
+      })),
+      ...cards
+        .filter((c) => noteIds.has(c.note_id) && !c.deleted)
+        .map((c) => ({
+          store: "cards" as const,
+          value: { ...c, deleted: true, updated_at: ts },
+        })),
+    ]);
+  }
+
   async createFolder(
     input: Omit<FolderRow, "user_id" | "created_at" | "updated_at" | "deleted">,
   ): Promise<FolderRow> {

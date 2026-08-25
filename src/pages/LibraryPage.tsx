@@ -2,7 +2,13 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { useNavigate, useSearchParams } from "react-router";
 import type { FolderRow, NoteRow } from "@/types";
-import { SearchIcon, AddIcon, ImportIcon, PlayIcon } from "@/components/icons";
+import {
+  SearchIcon,
+  AddIcon,
+  ImportIcon,
+  PlayIcon,
+  TrashIcon,
+} from "@/components/icons";
 import { EmptyState } from "@/components/EmptyState";
 import { TYPE_LABEL } from "@/components/formStyles";
 import { SelectField } from "@/components/SelectField";
@@ -89,6 +95,7 @@ export function LibraryPage() {
   const [importing, setImporting] = useState(openImport);
   const [starterImporting, setStarterImporting] = useState(false);
   const [starterError, setStarterError] = useState<string | null>(null);
+  const [clearingFolder, setClearingFolder] = useState(false);
   // Редактор папки: { folder: null } - создание, { folder } - правка.
   // `name` - заготовка имени (пришли из поиска папки в форме слова или из
   // имени папки в колоде импорта).
@@ -165,6 +172,8 @@ export function LibraryPage() {
     starterPreset &&
     lib.totalInFolder === 0 &&
     !starterAlreadyLoaded;
+  const canClearCurrentFolder =
+    scope !== null && currentFolder?.folder && lib.totalInFolder > 0;
 
   const saveFolder = async (patch: { name: string; color: string | null }) => {
     if (!folderEdit || writing.current) return;
@@ -311,6 +320,24 @@ export function LibraryPage() {
     }
   };
 
+  const clearCurrentFolder = async () => {
+    if (!scope || !currentFolder?.folder || clearingFolder || writing.current)
+      return;
+    const ok = window.confirm(
+      `Удалить все слова из папки «${currentFolder.folder.name}»? Папка останется, но слова и карточки будут удалены.`,
+    );
+    if (!ok) return;
+    writing.current = true;
+    setClearingFolder(true);
+    try {
+      await repo.deleteNotesInFolder(scope);
+      lib.reload();
+    } finally {
+      writing.current = false;
+      setClearingFolder(false);
+    }
+  };
+
   if (lib.loading) return <LibrarySkeleton />;
 
   // Чтение не удалось - предлагаем повтор. Показывать при этом пустой список
@@ -406,6 +433,17 @@ export function LibraryPage() {
                 <AddIcon className="size-3.5" strokeWidth={2.5} />
                 Добавить
               </button>
+              {canClearCurrentFolder && (
+                <button
+                  type="button"
+                  onClick={() => void clearCurrentFolder()}
+                  disabled={clearingFolder}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-[11px] border border-again/25 bg-again-soft px-3.5 py-2 text-[13.5px] font-bold text-again transition-colors hover:border-again/45 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <TrashIcon className="size-3.5" strokeWidth={2.3} />
+                  {clearingFolder ? "Удаляю…" : "Удалить всё"}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setImporting(true)}

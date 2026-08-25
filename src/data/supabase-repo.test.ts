@@ -250,6 +250,27 @@ describe('SupabaseRepository', () => {
     expect((tables.folders[0] as { deleted: boolean }).deleted).toBe(true)
   })
 
+  it('deleteNotesInFolder гасит слова и карточки, но оставляет папку', async () => {
+    const { client, calls, tables } = fakeClient({
+      folders: [{ id: 'f1', deleted: false }],
+      notes: [note({ id: 'n1', folder_id: 'f1' }), note({ id: 'n2', folder_id: 'f2' })],
+      cards: [
+        { id: 'c1', note_id: 'n1', deleted: false },
+        { id: 'c2', note_id: 'n2', deleted: false },
+      ],
+    })
+
+    await new SupabaseRepository(client).deleteNotesInFolder('f1')
+
+    const order = calls.filter((c) => c.op === 'update').map((c) => c.table)
+    expect(order).toEqual(['cards', 'notes'])
+    expect((tables.cards[0] as { deleted: boolean }).deleted).toBe(true)
+    expect((tables.cards[1] as { deleted: boolean }).deleted).toBe(false)
+    expect((tables.notes[0] as NoteRow).deleted).toBe(true)
+    expect((tables.notes[1] as NoteRow).deleted).toBe(false)
+    expect((tables.folders[0] as { deleted: boolean }).deleted).toBe(false)
+  })
+
   it('включение reverse оживляет ту же строку, а не вставляет вторую', async () => {
     // unique (note_id, direction) в схеме: вставка второй reverse-строки
     // упала бы на констрейнте. Проверяем, что идём через update по её id.
