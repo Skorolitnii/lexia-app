@@ -563,17 +563,55 @@ suficiente=достаточно
 `,
 };
 
+const EXAMPLE_TEMPLATES: Record<
+  StudyLanguage,
+  (front: string, back: string) => { text: string; translation: string }
+> = {
+  en: (front, back) => ({
+    text: `I see the word "${front}" in everyday English.`,
+    translation: `Я встречаю слово «${front}» в повседневном английском. Значение: ${back}.`,
+  }),
+  de: (front, back) => ({
+    text: `Ich lerne "${front}" heute.`,
+    translation: `Сегодня я учу «${front}». Значение: ${back}.`,
+  }),
+  it: (front, back) => ({
+    text: `Oggi imparo "${front}".`,
+    translation: `Сегодня я учу «${front}». Значение: ${back}.`,
+  }),
+  fr: (front, back) => ({
+    text: `Aujourd'hui, j'apprends "${front}".`,
+    translation: `Сегодня я учу «${front}». Значение: ${back}.`,
+  }),
+  es: (front, back) => ({
+    text: `Hoy aprendo "${front}".`,
+    translation: `Сегодня я учу «${front}». Значение: ${back}.`,
+  }),
+};
+
+function details(front: string, back: string): string {
+  const kind = front.includes(" ") ? "фраза" : "слово";
+  const meanings = back.includes(";")
+    ? "\n\n**Нюанс:** у карточки несколько близких переводов; выбирайте по контексту."
+    : "";
+  return `**Часть речи:** базовая лексика\n\n**Тип:** ${kind} для первых самостоятельных фраз.${meanings}`;
+}
+
 function notes(language: StudyLanguage) {
   return WORDS[language]
     .trim()
     .split("\n")
     .map((line) => {
       const [front, back] = line.split("=");
+      const cleanFront = front!.trim();
+      const cleanBack = back!.trim();
       return {
         type: "basic" as const,
-        front: front!.trim(),
-        back: back!.trim(),
+        front: cleanFront,
+        back: cleanBack,
         reverse: true,
+        examples: [EXAMPLE_TEMPLATES[language](cleanFront, cleanBack)],
+        details: details(cleanFront, cleanBack),
       };
     });
 }

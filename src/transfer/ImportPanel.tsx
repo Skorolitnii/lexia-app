@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
-import type { FolderRow } from '@/types'
-import { CheckIcon, CloseIcon, UndoIcon } from '@/components/icons'
-import { Spinner } from '@/components/Loading'
-import { useToast } from '@/components/Toast'
-import { TypeBadge } from '@/components/TypeBadge'
-import { DESKTOP_QUERY, useMediaQuery } from '@/components/useMediaQuery'
-import { FolderPicker } from '@/library/FolderPicker'
-import { clozePreview } from '@/study/cloze'
-import { plural } from '@/study/format'
-import type { PlanRow } from '@/transfer/plan'
-import { useImport } from '@/transfer/useImport'
+import { useEffect, useRef, useState } from "react";
+import type { FolderRow } from "@/types";
+import { CheckIcon, CloseIcon, UndoIcon } from "@/components/icons";
+import { Spinner } from "@/components/Loading";
+import { useToast } from "@/components/Toast";
+import { TypeBadge } from "@/components/TypeBadge";
+import { DESKTOP_QUERY, useMediaQuery } from "@/components/useMediaQuery";
+import { FolderPicker } from "@/library/FolderPicker";
+import { clozePreview } from "@/study/cloze";
+import { plural } from "@/study/format";
+import type { PlanRow } from "@/transfer/plan";
+import { useImport } from "@/transfer/useImport";
 
 /**
  * Колонка статуса: только исход импорта. Данных словаря здесь больше нет -
@@ -22,28 +22,29 @@ function StatusCell({ row }: { row: PlanRow }) {
       <span className="rounded-md bg-hard-soft px-2 py-0.5 text-[11px] font-extrabold text-hard">
         уже есть
       </span>
-    )
+    );
   }
-  return null
+  return null;
 }
 
 /**
  * Промпт, который пользователь отдаёт нейросети. Держим текст здесь, чтобы
  * он не разъезжался с тем, что реально умеет `parseDeck`.
  */
-const PROMPT = `Составь колоду для изучения английского в формате JSON:
+const PROMPT = `Составь колоду для изучения языка в формате JSON:
 
 {
   "version": 1,
+  "language": "en",
   "folder": "Название папки",
   "notes": [
     {
       "type": "basic",
-      "front": "английское слово",
+      "front": "слово на изучаемом языке",
       "back": "перевод на русский",
       "reverse": true,
       "examples": [
-        { "text": "Пример на английском.", "translation": "Перевод примера." }
+        { "text": "Пример на изучаемом языке.", "translation": "Перевод примера." }
       ],
       "details": "Markdown: часть речи, нюансы, синонимы"
     }
@@ -51,15 +52,17 @@ const PROMPT = `Составь колоду для изучения англий
 }
 
 Правила:
+- language: "en", "de", "it", "fr" или "es"
 - front - само слово, back - перевод (обязателен только он)
 - reverse: true - если нужна и обратная карточка RU → EN
 - type: "cloze" - предложение с пропуском: "The fox is a {{cunning::хитрый}} animal."
 - транскрипцию и аудио НЕ добавляй, приложение подтянет их само
 
-Тема: `
+Тема: `;
 
 const EXAMPLE = `{
   "version": 1,
+  "language": "en",
   "folder": "Animals",
   "notes": [
     {
@@ -77,35 +80,35 @@ const EXAMPLE = `{
       "back": "Лиса - хитрое животное."
     }
   ]
-}`
+}`;
 
 /** Описание формата: видно, пока файл не выбран. */
 function FormatHelp() {
-  const [copied, setCopied] = useState<'idle' | 'ok' | 'fail'>('idle')
-  const [showExample, setShowExample] = useState(false)
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const [copied, setCopied] = useState<"idle" | "ok" | "fail">("idle");
+  const [showExample, setShowExample] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Модалку вполне могут закрыть за те 2 секунды, что висит подтверждение.
-  useEffect(() => () => clearTimeout(timer.current), [])
+  useEffect(() => () => clearTimeout(timer.current), []);
 
   const copy = async () => {
     try {
       // Вне secure context (или при отказе в разрешении) промис реджектится -
       // без catch это unhandled rejection и молча не меняющаяся кнопка.
-      await navigator.clipboard.writeText(PROMPT)
-      setCopied('ok')
+      await navigator.clipboard.writeText(PROMPT);
+      setCopied("ok");
     } catch {
-      setCopied('fail')
+      setCopied("fail");
     }
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => setCopied('idle'), 2000)
-  }
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied("idle"), 2000);
+  };
 
   return (
     <div className="rounded-[14px] bg-rail px-4 py-3.5">
       <div className="text-[13.5px] leading-relaxed text-muted">
-        Попросите нейросеть составить колоду по теме - транскрипцию и озвучку приложение добавит
-        само при импорте. Обязателен только перевод.
+        Попросите нейросеть составить колоду по теме - транскрипцию и озвучку
+        приложение добавит само при импорте. Обязателен только перевод.
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -114,44 +117,57 @@ function FormatHelp() {
           onClick={() => void copy()}
           className="cursor-pointer rounded-[10px] bg-brand px-3.5 py-2 text-[13px] font-bold text-white"
         >
-          {copied === 'ok'
-            ? 'Промпт скопирован ✓'
-            : copied === 'fail'
-              ? 'Не удалось скопировать'
-              : 'Скопировать промпт'}
+          {copied === "ok"
+            ? "Промпт скопирован ✓"
+            : copied === "fail"
+              ? "Не удалось скопировать"
+              : "Скопировать промпт"}
         </button>
         <button
           type="button"
           onClick={() => setShowExample((v) => !v)}
           className="cursor-pointer rounded-[10px] bg-card px-3.5 py-2 text-[13px] font-bold text-muted-2"
         >
-          {showExample ? 'Скрыть пример' : 'Показать пример файла'}
+          {showExample ? "Скрыть пример" : "Показать пример файла"}
         </button>
       </div>
 
       {/* Не скопировалось - показываем промпт целиком, чтобы его можно было
           выделить руками, иначе пользователь остаётся ни с чем. */}
-      {(showExample || copied === 'fail') && (
+      {(showExample || copied === "fail") && (
         <pre className="mt-3 overflow-x-auto rounded-[10px] bg-card p-3 font-mono text-[11.5px] leading-relaxed text-muted select-text">
-          {copied === 'fail' ? PROMPT : EXAMPLE}
+          {copied === "fail" ? PROMPT : EXAMPLE}
         </pre>
       )}
     </div>
-  )
+  );
 }
 
-function Stat({ value, label, tone }: { value: number; label: string; tone?: 'brand' | 'hard' }) {
-  const color = tone === 'brand' ? 'text-brand-ink' : tone === 'hard' ? 'text-hard' : 'text-ink'
+function Stat({
+  value,
+  label,
+  tone,
+}: {
+  value: number;
+  label: string;
+  tone?: "brand" | "hard";
+}) {
+  const color =
+    tone === "brand"
+      ? "text-brand-ink"
+      : tone === "hard"
+        ? "text-hard"
+        : "text-ink";
   return (
     <div className="flex-1 rounded-[14px] bg-card p-3 text-center shadow-card">
       <div className={`text-[22px] font-extrabold ${color}`}>{value}</div>
       <div className="text-[11px] font-semibold text-faint-2">{label}</div>
     </div>
-  )
+  );
 }
 
 /** Откуда берём колоду: файл или вставленный текст. */
-type Source = 'file' | 'paste'
+type Source = "file" | "paste";
 
 export function ImportPanel({
   folders,
@@ -160,49 +176,49 @@ export function ImportPanel({
   onCreateFolder,
   pickedFolderId,
 }: {
-  folders: FolderRow[]
-  onClose: () => void
-  onImported: () => void
+  folders: FolderRow[];
+  onClose: () => void;
+  onImported: () => void;
   /** Открыть окно создания папки; аргумент - заготовка имени. */
-  onCreateFolder: (suggestedName: string) => void
+  onCreateFolder: (suggestedName: string) => void;
   /** Папка, только что созданная в том окне, - выбираем её как назначение. */
-  pickedFolderId: string | null
+  pickedFolderId: string | null;
 }) {
-  const imp = useImport()
-  const toast = useToast()
-  const isDesktop = useMediaQuery(DESKTOP_QUERY)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [source, setSource] = useState<Source>('file')
+  const imp = useImport();
+  const toast = useToast();
+  const isDesktop = useMediaQuery(DESKTOP_QUERY);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [source, setSource] = useState<Source>("file");
   // Текст вставки. Разбор - по кнопке, а не на каждый ввод: иначе недописанный
   // JSON сыпал бы ошибкой на каждом символе.
-  const [pasted, setPasted] = useState('')
+  const [pasted, setPasted] = useState("");
 
   // Папка обязательна. Новая создаётся сразу в своём окне (как в форме слова),
   // поэтому к моменту импорта она уже существует и лежит в `folderId`.
-  const folderChosen = imp.folderId !== null
+  const folderChosen = imp.folderId !== null;
 
   // Папку завели в окне поверх панели - выбираем её назначением. Эффект здесь
   // по делу: это синхронизация с внешним пропом, а не производное значение.
-  const setFolderId = imp.setFolderId
+  const setFolderId = imp.setFolderId;
   useEffect(() => {
-    if (pickedFolderId) setFolderId(pickedFolderId)
-  }, [pickedFolderId, setFolderId])
+    if (pickedFolderId) setFolderId(pickedFolderId);
+  }, [pickedFolderId, setFolderId]);
 
   // Импорт закрывает модалку сразу, а результат сообщает тостом - не держим
   // пользователя на экране «Готово». Ошибка (`ok: false`) оставляет панель
   // открытой: её причина уже показана внутри (`imp.error`).
   const runImport = async () => {
-    const result = await imp.run()
-    if (!result.ok) return
-    onImported()
-    onClose()
-    const created = `Импортировано ${result.created} ${plural(result.created, 'слово', 'слова', 'слов')}`
+    const result = await imp.run();
+    if (!result.ok) return;
+    onImported();
+    onClose();
+    const created = `Импортировано ${result.created} ${plural(result.created, "слово", "слова", "слов")}`;
     const skipped =
       result.skipped > 0
-        ? ` · ${result.skipped} ${plural(result.skipped, 'дубликат', 'дубликата', 'дубликатов')} пропущено`
-        : ''
-    toast.show(created + skipped, 'success')
-  }
+        ? ` · ${result.skipped} ${plural(result.skipped, "дубликат", "дубликата", "дубликатов")} пропущено`
+        : "";
+    toast.show(created + skipped, "success");
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -231,23 +247,23 @@ export function ImportPanel({
           <div className="flex gap-2 rounded-[14px] bg-rail p-1">
             {(
               [
-                { key: 'file', label: 'Загрузить файл' },
-                { key: 'paste', label: 'Вставить из буфера' },
+                { key: "file", label: "Загрузить файл" },
+                { key: "paste", label: "Вставить из буфера" },
               ] as const
             ).map(({ key, label }) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => {
-                  setSource(key)
+                  setSource(key);
                   // Смена вкладки сбрасывает недоразобранное: ошибка от файла
                   // не должна висеть над полем вставки, и наоборот.
-                  setPasted('')
-                  imp.reset()
+                  setPasted("");
+                  imp.reset();
                 }}
                 aria-pressed={source === key}
                 className={`flex-1 cursor-pointer rounded-[11px] py-2.5 text-[13.5px] font-bold transition-colors ${
-                  source === key ? 'bg-card text-ink shadow-card' : 'text-faint'
+                  source === key ? "bg-card text-ink shadow-card" : "text-faint"
                 }`}
               >
                 {label}
@@ -257,7 +273,7 @@ export function ImportPanel({
         )}
 
         {/* Файл */}
-        {source === 'file' && (
+        {source === "file" && (
           <>
             <button
               type="button"
@@ -269,12 +285,12 @@ export function ImportPanel({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[15px] font-bold text-ink">
-                  {imp.file?.name ?? 'Выбрать файл колоды'}
+                  {imp.file?.name ?? "Выбрать файл колоды"}
                 </span>
                 <span className="block text-[13px] text-faint-2">
                   {imp.deck
-                    ? `${imp.deck.notes.length} ${plural(imp.deck.notes.length, 'слово', 'слова', 'слов')} · ${Math.max(1, Math.round((imp.file?.size ?? 0) / 1024))} КБ`
-                    : 'JSON со списком слов - например, из ChatGPT или Claude'}
+                    ? `${imp.deck.notes.length} ${plural(imp.deck.notes.length, "слово", "слова", "слов")} · ${Math.max(1, Math.round((imp.file?.size ?? 0) / 1024))} КБ`
+                    : "JSON со списком слов - например, из ChatGPT или Claude"}
                 </span>
               </span>
               {imp.deck && (
@@ -289,17 +305,17 @@ export function ImportPanel({
               accept="application/json,.json"
               className="hidden"
               onChange={(e) => {
-                const picked = e.target.files?.[0]
-                if (picked) void imp.load(picked)
+                const picked = e.target.files?.[0];
+                if (picked) void imp.load(picked);
                 // Сброс: иначе повторный выбор ТОГО ЖЕ файла не даст change.
-                e.target.value = ''
+                e.target.value = "";
               }}
             />
           </>
         )}
 
         {/* Вставка из буфера */}
-        {source === 'paste' && !imp.deck && (
+        {source === "paste" && !imp.deck && (
           <div className="flex flex-col gap-2">
             <textarea
               // autoFocus только на десктопе: на мобайле фокус поднимает
@@ -348,7 +364,9 @@ export function ImportPanel({
               // Имя из колоды (§4) - заготовка в окне создания папки, чтобы не
               // перенабирать его руками. Если в списке ничего не искали,
               // подставится оно; набранный запрос имеет приоритет.
-              onCreate={(name) => onCreateFolder(name || imp.suggestedFolderName)}
+              onCreate={(name) =>
+                onCreateFolder(name || imp.suggestedFolderName)
+              }
             />
           </div>
         )}
@@ -367,14 +385,14 @@ export function ImportPanel({
         {imp.deck && imp.deck.issues.length > 0 && (
           <div className="rounded-[12px] bg-hard-soft px-4 py-3 text-[13px] text-hard">
             <span className="font-extrabold">
-              Пропущено {imp.deck.issues.length}{' '}
-              {plural(imp.deck.issues.length, 'слово', 'слова', 'слов')}:
-            </span>{' '}
+              Пропущено {imp.deck.issues.length}{" "}
+              {plural(imp.deck.issues.length, "слово", "слова", "слов")}:
+            </span>{" "}
             {imp.deck.issues
               .slice(0, 3)
               .map((i) => `#${i.index + 1} - ${i.reason}`)
-              .join('; ')}
-            {imp.deck.issues.length > 3 && ' …'}
+              .join("; ")}
+            {imp.deck.issues.length > 3 && " …"}
           </div>
         )}
 
@@ -392,32 +410,35 @@ export function ImportPanel({
                 <li
                   key={`${row.note.front}-${i}`}
                   className={`flex items-start gap-3 border-b border-line-faint px-3.5 py-2.5 lg:items-center lg:gap-4 ${
-                    row.duplicate ? 'bg-hard-soft/40' : ''
-                  } ${row.excluded ? 'opacity-45' : ''}`}
+                    row.duplicate ? "bg-hard-soft/40" : ""
+                  } ${row.excluded ? "opacity-45" : ""}`}
                 >
                   {/* Точка равняется по первой строке (само слово), а не по
                       центру блока: под словом ещё транскрипция и перевод. */}
                   <span
-                    className={`mt-2 size-2 shrink-0 rounded-full lg:mt-0 ${row.duplicate ? 'bg-hard' : 'bg-brand'}`}
+                    className={`mt-2 size-2 shrink-0 rounded-full lg:mt-0 ${row.duplicate ? "bg-hard" : "bg-brand"}`}
                     aria-hidden
                   />
                   <div className="min-w-0 flex-1 lg:flex lg:items-center lg:gap-4">
                     <div className="min-w-0 lg:flex-[1.2]">
                       <div className="flex items-baseline gap-1.5">
                         <span
-                          className={`truncate text-[15px] font-bold text-ink ${row.excluded ? 'line-through' : ''}`}
+                          className={`truncate text-[15px] font-bold text-ink ${row.excluded ? "line-through" : ""}`}
                         >
-                          {row.note.type === 'cloze'
+                          {row.note.type === "cloze"
                             ? clozePreview(row.note.front)
                             : row.note.front}
                         </span>
                       </div>
                     </div>
                     <div className="truncate text-[13px] text-faint-2 lg:min-w-0 lg:flex-1 lg:text-[14.5px] lg:text-muted">
-                      {row.note.back ?? '-'}
+                      {row.note.back ?? "-"}
                     </div>
                     <div className="hidden w-[90px] shrink-0 lg:block">
-                      <TypeBadge type={row.note.type} reverse={row.note.reverse} />
+                      <TypeBadge
+                        type={row.note.type}
+                        reverse={row.note.reverse}
+                      />
                     </div>
                   </div>
                   <div className="mt-0.5 shrink-0 text-right lg:mt-0 lg:w-[130px]">
@@ -435,7 +456,7 @@ export function ImportPanel({
                           ? `Вернуть ${row.note.front} в импорт`
                           : `Убрать ${row.note.front} из импорта`
                       }
-                      title={row.excluded ? 'Вернуть' : 'Убрать из импорта'}
+                      title={row.excluded ? "Вернуть" : "Убрать из импорта"}
                       className="mt-0.5 flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-faint-2 transition-colors hover:bg-rail hover:text-hard lg:mt-0"
                     >
                       {row.excluded ? (
@@ -457,26 +478,29 @@ export function ImportPanel({
         <div className="flex items-center justify-between gap-4">
           <span className="hidden text-[13px] font-semibold text-faint lg:block">
             {imp.deck && !folderChosen
-              ? 'Выберите папку для импорта'
-              : 'Дубликаты пропускаются · транскрипция и озвучка добавятся после импорта'}
+              ? "Выберите папку для импорта"
+              : "Дубликаты пропускаются · транскрипция и озвучка добавятся после импорта"}
           </span>
           <button
             type="button"
             disabled={
-              !imp.plan || imp.plan.willImport === 0 || imp.stage.kind !== 'ready' || !folderChosen
+              !imp.plan ||
+              imp.plan.willImport === 0 ||
+              imp.stage.kind !== "ready" ||
+              !folderChosen
             }
             onClick={() => void runImport()}
             className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[14px] bg-brand px-6 py-3.5 text-[15px] font-extrabold text-white shadow-brand disabled:cursor-not-allowed disabled:bg-track disabled:text-faint-2 disabled:shadow-none lg:w-auto lg:py-3 lg:text-[14px]"
           >
-            {imp.stage.kind === 'importing' && <Spinner size={16} />}
-            {imp.stage.kind === 'importing'
-              ? 'Импорт…'
+            {imp.stage.kind === "importing" && <Spinner size={16} />}
+            {imp.stage.kind === "importing"
+              ? "Импорт…"
               : imp.plan
                 ? `Импортировать ${imp.plan.willImport}`
-                : 'Импортировать'}
+                : "Импортировать"}
           </button>
         </div>
       </div>
     </div>
-  )
+  );
 }

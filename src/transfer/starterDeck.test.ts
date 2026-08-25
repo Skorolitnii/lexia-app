@@ -37,6 +37,10 @@ describe("стартовые колоды", () => {
       for (const note of deck.notes) {
         expect(note.type, note.front).toBe("basic");
         expect(note.back, note.front).toBeTruthy();
+        expect(note.examples, note.front).toHaveLength(1);
+        expect(note.examples[0]?.text, note.front).toBeTruthy();
+        expect(note.examples[0]?.translation, note.front).toBeTruthy();
+        expect(note.details, note.front).toContain("**Часть речи:**");
         expect(note.study_language, note.front).toBe(preset.language);
       }
       const fronts = deck.notes.map((n) => n.front.toLowerCase());
