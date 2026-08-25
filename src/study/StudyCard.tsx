@@ -331,11 +331,10 @@ function ChoiceExercise({
   onChoose: (option: ChoiceOption) => void;
 }) {
   return (
-    <div className="flex w-full flex-1 flex-col justify-center gap-5 px-6 text-center lg:px-10">
+    <div className="flex w-full flex-1 flex-col justify-center gap-6 px-6 py-6 text-center lg:px-10 lg:py-8">
       <div>
-        <ExerciseHint>Выберите ответ</ExerciseHint>
         <p
-          className={`mt-4 leading-tight font-extrabold break-words text-ink ${promptSizeCls(prompt)}`}
+          className={`leading-tight font-extrabold break-words text-ink ${promptSizeCls(prompt)}`}
         >
           {prompt}
         </p>
@@ -510,7 +509,7 @@ function CardFront({
   return (
     <div
       inert={hidden}
-      className="absolute inset-0 flex flex-col items-center rounded-card-lg bg-card pt-7 shadow-flip [backface-visibility:hidden] lg:rounded-[26px] lg:pt-10"
+      className="col-start-1 row-start-1 flex min-h-[380px] flex-col items-center rounded-card-lg bg-card pt-7 shadow-flip [backface-visibility:hidden] lg:rounded-[26px] lg:pt-10"
     >
       <div className="w-full px-7 lg:px-10">
         <span className="self-start rounded-pill bg-brand-soft px-3 py-1.5 text-[11px] font-extrabold tracking-[0.05em] text-brand-ink">
@@ -631,7 +630,7 @@ function CardBack({
     // читается до переворота.
     <div
       inert={hidden}
-      className="absolute inset-0 flex flex-col overflow-y-auto rounded-card-lg bg-card p-6 shadow-flip [backface-visibility:hidden] [transform:rotateY(180deg)] lg:rounded-[26px] lg:p-8"
+      className="col-start-1 row-start-1 flex min-h-[380px] flex-col overflow-y-auto rounded-card-lg bg-card p-6 shadow-flip [backface-visibility:hidden] [transform:rotateY(180deg)] lg:rounded-[26px] lg:p-8"
     >
       {card.direction === "cloze" ? (
         <div className="flex items-center gap-3">
@@ -740,13 +739,13 @@ export function StudyCard({
   };
 
   return (
-    <div className="[perspective:1700px] relative flex-1 lg:h-[380px] lg:w-[560px] lg:flex-none">
+    <div className="[perspective:1700px] flex-1 lg:min-h-[380px] lg:w-[560px] lg:flex-none">
       {/* Ключ по карточке: следующая карточка монтируется новым узлом, поэтому ей
           не от чего анимировать разворот назад. Появление живёт на обёртке -
           на самом флипе оно перебивало бы transform переворота. */}
       <motion.div
         key={card.id}
-        className="absolute inset-0"
+        className="relative h-full"
         initial={{ opacity: 0, y: 10, scale: 0.985 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
@@ -774,7 +773,7 @@ export function StudyCard({
                 },
                 "aria-label": "Показать ответ",
               })}
-          className={`absolute inset-0 text-left [transform-style:preserve-3d] transition-transform duration-[550ms] ease-[cubic-bezier(.4,0,.2,1)] ${revealed ? "" : "cursor-pointer"}`}
+          className={`grid min-h-full text-left [transform-style:preserve-3d] transition-transform duration-[550ms] ease-[cubic-bezier(.4,0,.2,1)] ${revealed ? "" : "cursor-pointer"}`}
           style={{ transform: revealed ? "rotateY(180deg)" : undefined }}
         >
           <CardFront
