@@ -7,6 +7,7 @@ import {
   fieldCls as field,
   labelCls,
 } from "@/components/formStyles";
+import { SelectField } from "@/components/SelectField";
 import { FolderPicker } from "@/library/FolderPicker";
 import {
   cardsForDraft,
@@ -356,26 +357,24 @@ export function NoteForm({
           <label htmlFor="note-language" className={labelCls}>
             Язык слова
           </label>
-          <select
+          <SelectField
             id="note-language"
             value={draft.study_language}
-            onChange={(e) =>
+            onChange={(value) =>
               onChange({
                 ...draft,
-                study_language: e.target.value as NoteDraft["study_language"],
+                study_language: value as NoteDraft["study_language"],
                 transcription: null,
                 audio_url: null,
                 lookupFor: null,
               })
             }
-            className={`${field} py-2.5`}
-          >
-            {STUDY_LANGUAGES.map((language) => (
-              <option key={language.value} value={language.value}>
-                {language.label}
-              </option>
-            ))}
-          </select>
+            className="py-2.5"
+            options={STUDY_LANGUAGES.map((language) => ({
+              value: language.value,
+              label: language.label,
+            }))}
+          />
         </div>
 
         <div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRepo } from "@/data/useRepo";
-import { selectCls } from "@/components/formStyles";
+import { SelectField } from "@/components/SelectField";
 
 /**
  * Настройки изучения. Пока одна - дневная норма новых слов: раньше она была
@@ -46,26 +46,22 @@ export function StudySettings() {
         </div>
       </div>
       <div className="shrink-0">
-        <select
+        <SelectField
           aria-label="Новых карточек в день"
-          className={selectCls}
           // Пока настройки грузятся, значения нет - select не должен показывать чужое.
           value={limit ?? ""}
           disabled={limit === null || saving}
-          onChange={(e) => save(Number(e.target.value))}
-        >
-          {limit === null && <option value="">…</option>}
-          {LIMITS.map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-          {/* Значение из бэкапа может не совпасть со списком - показываем его,
-              иначе select молча съедет на первый пункт и «сохранит» его. */}
-          {limit !== null && !LIMITS.includes(limit) && (
-            <option value={limit}>{limit}</option>
-          )}
-        </select>
+          onChange={(value) => save(Number(value))}
+          options={[
+            ...(limit === null ? [{ value: "", label: "…" }] : []),
+            ...LIMITS.map((n) => ({ value: String(n), label: String(n) })),
+            // Значение из бэкапа может не совпасть со списком - показываем его,
+            // иначе select молча съедет на первый пункт и «сохранит» его.
+            ...(limit !== null && !LIMITS.includes(limit)
+              ? [{ value: String(limit), label: String(limit) }]
+              : []),
+          ]}
+        />
       </div>
     </div>
   );

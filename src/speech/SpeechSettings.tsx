@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRepo } from "@/data/useRepo";
 import { PlayIcon } from "@/components/icons";
 import { Spinner } from "@/components/Loading";
-import { selectCls } from "@/components/formStyles";
+import { SelectField } from "@/components/SelectField";
 import {
   languageOption,
   STUDY_LANGUAGES,
@@ -216,28 +216,32 @@ export function SpeechSettings() {
                     {language.label}
                   </div>
                   <div className="mt-1.5 flex items-center gap-2 lg:mt-0">
-                    <select
-                      className={`${selectCls} min-w-0 flex-1 py-2 text-[13px] lg:w-[230px] lg:flex-none`}
+                    <SelectField
+                      className="min-w-0 flex-1 py-2 text-[13px] lg:w-[230px] lg:flex-none"
                       value={selectedURI}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         save({
                           tts_voices: {
                             ...voiceURIs,
-                            [language.value]: e.target.value || null,
+                            [language.value]: value || null,
                           },
                         })
                       }
                       disabled={languageVoices.length === 0}
-                    >
-                      {languageVoices.length === 0 && (
-                        <option value="">Авто ({language.locale})</option>
-                      )}
-                      {languageVoices.map((v) => (
-                        <option key={v.voiceURI} value={v.voiceURI}>
-                          {v.name} ({v.lang})
-                        </option>
-                      ))}
-                    </select>
+                      options={
+                        languageVoices.length === 0
+                          ? [
+                              {
+                                value: "",
+                                label: `Авто (${language.locale})`,
+                              },
+                            ]
+                          : languageVoices.map((v) => ({
+                              value: v.voiceURI,
+                              label: `${v.name} (${v.lang})`,
+                            }))
+                      }
+                    />
                     <button
                       type="button"
                       aria-label={`Проверить ${language.label}`}

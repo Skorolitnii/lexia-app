@@ -4,7 +4,8 @@ import { useNavigate, useSearchParams } from "react-router";
 import type { FolderRow, NoteRow } from "@/types";
 import { SearchIcon, AddIcon, ImportIcon, PlayIcon } from "@/components/icons";
 import { EmptyState } from "@/components/EmptyState";
-import { TYPE_LABEL, selectCls } from "@/components/formStyles";
+import { TYPE_LABEL } from "@/components/formStyles";
+import { SelectField } from "@/components/SelectField";
 import { useRepo } from "@/data/useRepo";
 import { FolderList } from "@/library/FolderList";
 import { FolderEditor } from "@/library/FolderEditor";
@@ -369,16 +370,17 @@ export function LibraryPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <select
+                <SelectField
                   value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
+                  onChange={(value) => setTypeFilter(value as TypeFilter)}
                   aria-label="Тип карточки"
-                  className={`min-w-0 flex-1 rounded-[12px] border border-line bg-card py-2.5 pl-3.5 text-[13.5px] font-semibold text-muted-2 outline-none lg:flex-none ${selectCls}`}
-                >
-                  <option value="all">Все типы</option>
-                  <option value="basic">{TYPE_LABEL.basic}</option>
-                  <option value="cloze">{TYPE_LABEL.cloze}</option>
-                </select>
+                  className="min-w-0 flex-1 rounded-[12px] border border-line py-2.5 pl-3.5 text-[13.5px] font-semibold text-muted-2 lg:flex-none"
+                  options={[
+                    { value: "all", label: "Все типы" },
+                    { value: "basic", label: TYPE_LABEL.basic },
+                    { value: "cloze", label: TYPE_LABEL.cloze },
+                  ]}
+                />
               </div>
             </div>
 
