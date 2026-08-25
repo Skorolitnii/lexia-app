@@ -80,7 +80,7 @@ function session(): MediaSession {
 
 describe("audio session type", () => {
   it("озвучка объявляет сессию transient, а не playback", () => {
-    const { result } = renderHook(() => useSpeech({ language: "en", rate: 1 }));
+    const { result } = renderHook(() => useSpeech({ rate: 1 }));
     // До первого воспроизведения - дефолт WebKit.
     expect(audioSession().type).toBe("auto");
 
@@ -88,6 +88,7 @@ describe("audio session type", () => {
       result.current.play({
         url: "https://x/word.mp3",
         text: "word",
+        language: "en",
         cloud: false,
       });
     });
@@ -98,7 +99,7 @@ describe("audio session type", () => {
   });
 
   it("локальный синтез (мимо unlock) тоже объявляет transient", () => {
-    const { result } = renderHook(() => useSpeech({ language: "en", rate: 1 }));
+    const { result } = renderHook(() => useSpeech({ rate: 1 }));
     act(() => result.current.speak("hello"));
     expect(audioSession().type).toBe("transient");
   });
@@ -106,11 +107,12 @@ describe("audio session type", () => {
 
 describe("media session release", () => {
   it("ended у реальной озвучки гасит карточку плеера", () => {
-    const { result } = renderHook(() => useSpeech({ language: "en", rate: 1 }));
+    const { result } = renderHook(() => useSpeech({ rate: 1 }));
     act(() => {
       result.current.play({
         url: "https://x/word.mp3",
         text: "word",
+        language: "en",
         cloud: false,
       });
     });
@@ -121,13 +123,23 @@ describe("media session release", () => {
   });
 
   it("перехват другой озвучкой гасит карточку от прерванной", () => {
-    const { result } = renderHook(() => useSpeech({ language: "en", rate: 1 }));
+    const { result } = renderHook(() => useSpeech({ rate: 1 }));
     act(() => {
-      result.current.play({ url: "https://x/a.mp3", text: "a", cloud: false });
+      result.current.play({
+        url: "https://x/a.mp3",
+        text: "a",
+        language: "en",
+        cloud: false,
+      });
     });
     const audio = created[0];
     act(() => {
-      result.current.play({ url: "https://x/b.mp3", text: "b", cloud: false });
+      result.current.play({
+        url: "https://x/b.mp3",
+        text: "b",
+        language: "en",
+        cloud: false,
+      });
     });
     expect(audio.src).toBe("https://x/b.mp3");
     // `ended` по первой фразе не придёт никогда - карточку гасит сам `playUrl`.
@@ -135,11 +147,14 @@ describe("media session release", () => {
   });
 
   it("размонтирование провайдера отпускает элемент и гасит карточку", () => {
-    const { result, unmount } = renderHook(() =>
-      useSpeech({ language: "en", rate: 1 }),
-    );
+    const { result, unmount } = renderHook(() => useSpeech({ rate: 1 }));
     act(() => {
-      result.current.play({ url: "https://x/a.mp3", text: "a", cloud: false });
+      result.current.play({
+        url: "https://x/a.mp3",
+        text: "a",
+        language: "en",
+        cloud: false,
+      });
     });
     const audio = created[0];
     unmount();

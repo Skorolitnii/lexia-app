@@ -54,6 +54,7 @@ export interface ImportDeckNote {
   back: string | null;
   details: string | null;
   examples: { text: string; translation?: string }[];
+  study_language: StudyLanguage;
   reverse: boolean;
   tags: string[];
 }
@@ -71,13 +72,11 @@ export interface ImportDeckResult {
 export async function importDeck(
   notes: ImportDeckNote[],
   folderId: string | null,
-  language: StudyLanguage,
   rate: number,
 ): Promise<ImportDeckResult> {
   const body = (await callFunction("import-deck", {
     notes,
     folderId,
-    language,
     rate,
   })) as {
     created?: unknown;

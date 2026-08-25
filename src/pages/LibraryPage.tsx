@@ -110,9 +110,9 @@ export function LibraryPage() {
   // debounce каждая буква била бы новой постраничной выборкой на сервер.
   const debouncedSearch = useDebounced(search.trim(), 350);
   const lib = useLibrary(scope, debouncedSearch, typeFilter);
-  // Язык и скорость нужны прогреву: сервер синтезирует тем же голосом и с
-  // тем же ключом кэша, что попросит клиент при показе карточки.
-  const { studyLanguage, rate } = useSpeechContext();
+  // Скорость нужна прогреву для того же ключа кэша, что попросит клиент.
+  // Язык берём из самой заметки.
+  const { rate } = useSpeechContext();
 
   const folderRows = useMemo(
     () => lib.folders.flatMap((f) => (f.folder ? [f.folder] : [])),
@@ -195,6 +195,7 @@ export function LibraryPage() {
         back: draft.back.trim() || null,
         details: draft.details.trim() || null,
         examples: draft.examples.filter((e) => e.text.trim()),
+        study_language: draft.study_language,
         tags: draft.tags,
         // Транскрипция и аудио приходят из словаря, а не из полей формы (§4),
         // и только если принадлежат текущему слову: у фразы, cloze и кириллицы
@@ -223,7 +224,7 @@ export function LibraryPage() {
             : payload.front,
           ...payload.examples.map((e) => e.text),
         ],
-        studyLanguage,
+        payload.study_language,
         rate,
       );
       closeSheet();

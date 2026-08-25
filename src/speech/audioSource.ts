@@ -1,5 +1,6 @@
-import { clozePlainText } from '@/study/cloze'
-import type { Direction, NoteRow } from '@/types'
+import { clozePlainText } from "@/study/cloze";
+import type { Direction, NoteRow } from "@/types";
+import { normalizeStudyLanguage, type StudyLanguage } from "@/speech/languages";
 
 /**
  * Что и чем озвучивать (§6). Источник ОДИН - облачный синтез Azure: и слова, и
@@ -21,14 +22,16 @@ export interface SpeakSource {
    * Поле оставлено, потому что заметка может нести собственный `audio_url`
    * из импортированного чужого JSON (§5, loseless).
    */
-  url: string | null
+  url: string | null;
   /** Текст для синтеза - и облачного, и локального. */
-  text: string
+  text: string;
+  /** Язык этого текста. Если старые данные без поля - English. */
+  language: StudyLanguage;
   /**
    * Отдать текст облаку. Практически всегда `true`: облако - основной источник.
    * `false` означало бы «озвучить только локально».
    */
-  cloud?: boolean
+  cloud?: boolean;
 }
 
 /**
@@ -39,7 +42,15 @@ export interface SpeakSource {
  * У `forward`/`reverse` озвучивается EN-сторона, то есть `front` в обоих
  * случаях: на обороте reverse появляется то же самое английское слово.
  */
-export function cardSpeakSource(note: NoteRow, direction: Direction): SpeakSource {
-  const text = direction === 'cloze' ? clozePlainText(note.front) : note.front
-  return { url: null, text, cloud: true }
+export function cardSpeakSource(
+  note: NoteRow,
+  direction: Direction,
+): SpeakSource {
+  const text = direction === "cloze" ? clozePlainText(note.front) : note.front;
+  return {
+    url: null,
+    text,
+    language: normalizeStudyLanguage(note.study_language),
+    cloud: true,
+  };
 }

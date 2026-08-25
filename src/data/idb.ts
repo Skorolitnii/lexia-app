@@ -412,6 +412,7 @@ export class IdbRepository implements Repository {
         ...existing,
         tts_cloud: existing.tts_cloud ?? true,
         study_language: normalizeStudyLanguage(existing.study_language),
+        tts_voices: existing.tts_voices ?? {},
       };
     }
     const defaults: SettingsRow = {
@@ -420,6 +421,7 @@ export class IdbRepository implements Repository {
       new_cards_per_day: 20,
       bury_siblings: false,
       tts_voice: null,
+      tts_voices: {},
       tts_rate: 1.0,
       tts_autoplay: false,
       audio_region: "us",

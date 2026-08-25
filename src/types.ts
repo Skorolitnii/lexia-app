@@ -1,5 +1,5 @@
 import type { State } from "ts-fsrs";
-import type { StudyLanguage } from "@/speech/languages";
+import type { StudyLanguage, VoiceByLanguage } from "@/speech/languages";
 
 /** Пример употребления в заметке. */
 export interface Example {
@@ -38,6 +38,8 @@ export interface NoteRow {
   image_url: string | null;
   details: string | null;
   examples: Example[];
+  /** Язык изучаемого текста на лицевой стороне. Старые строки без поля = English. */
+  study_language?: StudyLanguage;
   reverse: boolean;
   tags: string[];
   created_at: string;
@@ -93,6 +95,8 @@ export interface SettingsRow {
   new_cards_per_day: number;
   bury_siblings: boolean;
   tts_voice: string | null;
+  /** Закреплённые голоса устройства по языкам. */
+  tts_voices?: VoiceByLanguage;
   tts_rate: number;
   tts_autoplay: boolean;
   /** Legacy: старый US/UK accent. Новый выбор языка живёт в `study_language`. */

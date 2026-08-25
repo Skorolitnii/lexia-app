@@ -33,9 +33,9 @@ export interface ImportResult {
 
 export function useImport() {
   const repo = useRepo();
-  // Язык и скорость нужны серверу, чтобы синтезировать озвучку тем же
-  // голосом и с тем же ключом кэша, что попросит клиент при показе карточки.
-  const { studyLanguage, rate } = useSpeechContext();
+  // Скорость нужна серверу для того же ключа кэша, что попросит клиент при
+  // показе карточки. Язык лежит на каждой заметке.
+  const { rate } = useSpeechContext();
   const [file, setFile] = useState<ImportFile | null>(null);
   const [deck, setDeck] = useState<Deck | null>(null);
   const [stage, setStage] = useState<ImportStage>({ kind: "idle" });
@@ -182,7 +182,6 @@ export function useImport() {
       const result = await importDeck(
         plan.rows.filter((r) => !r.duplicate && !r.excluded).map((r) => r.note),
         folderId,
-        studyLanguage,
         rate,
       );
       return {
@@ -197,7 +196,7 @@ export function useImport() {
     } finally {
       running.current = false;
     }
-  }, [plan, folderId, studyLanguage, rate]);
+  }, [plan, folderId, rate]);
 
   return {
     file,

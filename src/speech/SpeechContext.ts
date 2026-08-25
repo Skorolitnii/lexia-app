@@ -1,6 +1,6 @@
 import { createContext } from "react";
+import type { VoiceByLanguage } from "@/speech/languages";
 import type { Speech } from "@/speech/useSpeech";
-import type { StudyLanguage } from "@/speech/languages";
 
 /**
  * Общий экземпляр озвучки на приложение: одна подписка на `voiceschanged`
@@ -14,8 +14,8 @@ export interface SpeechContextValue extends Speech {
   rate: number;
   /** Автопроигрывать лицо карточки при показе. */
   autoplay: boolean;
-  /** Язык синтеза. English всегда звучит как en-US. */
-  studyLanguage: StudyLanguage;
+  /** Закреплённые голоса устройства по языкам. */
+  voiceURIs: VoiceByLanguage;
   /** Включён ли облачный синтез фраз. */
   cloud: boolean;
   /** Закреплённый голос устройства или null (авто). Только для локального синтеза. */

@@ -1,25 +1,26 @@
-import { useEffect } from 'react'
-import { motion } from 'motion/react'
-import { useNavigate, useSearchParams } from 'react-router'
-import { CloseIcon, UndoIcon } from '@/components/icons'
-import { LoadError } from '@/components/LoadError'
-import { LoadingScreen } from '@/components/Loading'
-import type { Scope } from '@/data/queue'
-import type { Direction, NoteRow } from '@/types'
-import { autoplayText } from '@/study/autoplay'
-import { cardSpeakSource } from '@/speech/audioSource'
-import { RatingBar } from '@/study/RatingBar'
-import { CramBar } from '@/study/CramBar'
-import { SessionSummary } from '@/study/SessionSummary'
-import { StudyCard } from '@/study/StudyCard'
-import { StudySetup } from '@/study/StudySetup'
-import { plural } from '@/study/format'
-import { useStudyHotkeys } from '@/study/useStudyHotkeys'
-import { useStudySession } from '@/study/useStudySession'
-import { useSpeechContext } from '@/speech/useSpeechContext'
+import { useEffect } from "react";
+import { motion } from "motion/react";
+import { useNavigate, useSearchParams } from "react-router";
+import { CloseIcon, UndoIcon } from "@/components/icons";
+import { LoadError } from "@/components/LoadError";
+import { LoadingScreen } from "@/components/Loading";
+import type { Scope } from "@/data/queue";
+import type { Direction, NoteRow } from "@/types";
+import { autoplayText } from "@/study/autoplay";
+import { cardSpeakSource } from "@/speech/audioSource";
+import { RatingBar } from "@/study/RatingBar";
+import { CramBar } from "@/study/CramBar";
+import { SessionSummary } from "@/study/SessionSummary";
+import { StudyCard } from "@/study/StudyCard";
+import { StudySetup } from "@/study/StudySetup";
+import { plural } from "@/study/format";
+import { useStudyHotkeys } from "@/study/useStudyHotkeys";
+import { useStudySession } from "@/study/useStudySession";
+import { normalizeStudyLanguage } from "@/speech/languages";
+import { useSpeechContext } from "@/speech/useSpeechContext";
 
 function ProgressBar({ done, total }: { done: number; total: number }) {
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   return (
     <div
       className="mb-6 h-[5px] overflow-hidden rounded-[3px] bg-line"
@@ -32,7 +33,7 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
         style={{ width: `${pct}%` }}
       />
     </div>
-  )
+  );
 }
 
 /**
@@ -42,43 +43,56 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
  * без общего состояния.
  */
 /** Сколько примеров следующей карточки греем заранее. */
-const PREFETCH_EXAMPLES = 2
+const PREFETCH_EXAMPLES = 2;
 
 export function StudyPage() {
-  const [params, setParams] = useSearchParams()
-  const started = params.get('go') === '1'
+  const [params, setParams] = useSearchParams();
+  const started = params.get("go") === "1";
 
   if (!started) {
     return (
       <StudySetup
-        initialFolderId={params.get('folder')}
-        initialCram={params.get('cram') === '1'}
+        initialFolderId={params.get("folder")}
+        initialCram={params.get("cram") === "1"}
         onStart={({ folderIds, cram }) => {
-          const next = new URLSearchParams()
-          folderIds?.forEach((id) => next.append('folder', id))
-          if (cram) next.set('cram', '1')
-          next.set('go', '1')
-          setParams(next)
+          const next = new URLSearchParams();
+          folderIds?.forEach((id) => next.append("folder", id));
+          if (cram) next.set("cram", "1");
+          next.set("go", "1");
+          setParams(next);
         }}
       />
-    )
+    );
   }
 
-  const folderIds = params.getAll('folder')
-  const scope: Scope = folderIds.length ? { kind: 'folders', folderIds } : { kind: 'all' }
-  const cram = params.get('cram') === '1'
+  const folderIds = params.getAll("folder");
+  const scope: Scope = folderIds.length
+    ? { kind: "folders", folderIds }
+    : { kind: "all" };
+  const cram = params.get("cram") === "1";
 
   // key: смена области/режима пересобирает сессию с нуля (хук читает scope
   // только при монтировании).
-  return <StudySession key={params.toString()} scope={scope} cram={cram} />
+  return <StudySession key={params.toString()} scope={scope} cram={cram} />;
 }
 
 function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
-  const navigate = useNavigate()
-  const [params, setParams] = useSearchParams()
-  const session = useStudySession(scope, cram)
-  const { current, next, revealed, reveal, rate, undo, canUndo, options, done, counts } = session
-  const { play, prefetch, autoplay } = useSpeechContext()
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const session = useStudySession(scope, cram);
+  const {
+    current,
+    next,
+    revealed,
+    reveal,
+    rate,
+    undo,
+    canUndo,
+    options,
+    done,
+    counts,
+  } = session;
+  const { play, prefetch, autoplay } = useSpeechContext();
 
   // Выход из сессии возвращает на экран выбора (снимаем go), а не в библиотеку -
   // так проще выбрать другую папку. Крестик/Esc = «завершить».
@@ -86,15 +100,15 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
   // с тем же режимом и папкой. Раньше здесь стоял `setParams({})`, и выход из
   // «Повторения» молча возвращал в «Изучение».
   const exit = () => {
-    const next = new URLSearchParams(params)
-    next.delete('go')
-    setParams(next)
-  }
-  const goLibrary = () => void navigate('/library')
+    const next = new URLSearchParams(params);
+    next.delete("go");
+    setParams(next);
+  };
+  const goLibrary = () => void navigate("/library");
 
-  const cardId = current?.card.id
-  const direction = current?.card.direction
-  const front = current?.note.front
+  const cardId = current?.card.id;
+  const direction = current?.card.direction;
+  const front = current?.note.front;
   // Озвучка идёт тем же путём, что и кнопка на карточке: единственный источник -
   // облако (§6). `autoplayText` решает, КОГДА играть, `cardSpeakSource` - ЧЕМ.
 
@@ -103,22 +117,40 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
   // у cloze - предложение с пропусками (озвучка выдала бы ответ), поэтому там null.
   // Зависимость по `card.id`: озвучиваем при СМЕНЕ карточки, а не на reveal/undo.
   useEffect(() => {
-    if (!front) return
-    const text = autoplayText({ autoplay, direction, front, revealed: false })
+    if (!front) return;
+    const text = autoplayText({ autoplay, direction, front, revealed: false });
     // `gesture: false` - это не клик: при промахе облачного кэша лучше
     // промолчать, чем озвучить роботом (см. `useSpeech.play`).
-    if (text !== null) play({ url: null, text, cloud: true }, { gesture: false })
-  }, [cardId, direction, front, autoplay, play])
+    if (text !== null)
+      play(
+        {
+          url: null,
+          text,
+          language: normalizeStudyLanguage(current?.note.study_language),
+          cloud: true,
+        },
+        { gesture: false },
+      );
+  }, [cardId, direction, front, autoplay, play]);
 
   // Автоплей оборота: играем то, что `autoplayText` разрешает для ОБОРОТА
   // (revealed:true) - это reverse (EN-слово появляется на обороте) и cloze
   // (предложение целиком, уже без секрета). Эффект срабатывает по `revealed`;
   // undo (revealed→false) ничего не играет, т.к. ниже гейт `if (revealed)`.
   useEffect(() => {
-    if (!front || !revealed) return
-    const text = autoplayText({ autoplay, direction, front, revealed: true })
-    if (text !== null) play({ url: null, text, cloud: true }, { gesture: false })
-  }, [cardId, direction, front, autoplay, revealed, play])
+    if (!front || !revealed) return;
+    const text = autoplayText({ autoplay, direction, front, revealed: true });
+    if (text !== null)
+      play(
+        {
+          url: null,
+          text,
+          language: normalizeStudyLanguage(current?.note.study_language),
+          cloud: true,
+        },
+        { gesture: false },
+      );
+  }, [cardId, direction, front, autoplay, revealed, play]);
 
   // Прогрев озвучки следующей карточки, пока пользователь смотрит текущую.
   // Синтез в облаке занимает секунды, и без этого каждая новая фраза
@@ -131,24 +163,29 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
   // Греем и ТЕКУЩУЮ карточку, и следующую. Только следующей мало: в начале
   // сессии первая карточка оказывалась холодной - её примеры встречали
   // лоадером, потому что прогрев смотрел лишь на `queue[1]`.
-  const warmNote = current?.note
-  const warmDirection = current?.card.direction
-  const nextNote = next?.note
-  const nextDirection = next?.card.direction
+  const warmNote = current?.note;
+  const warmDirection = current?.card.direction;
+  const nextNote = next?.note;
+  const nextDirection = next?.card.direction;
   useEffect(() => {
     const warm = (note: NoteRow | undefined, dir: Direction | undefined) => {
-      if (!note || !dir) return
-      prefetch(cardSpeakSource(note, dir))
+      if (!note || !dir) return;
+      prefetch(cardSpeakSource(note, dir));
       // Примеры озвучиваются той же кнопкой на обороте - их тоже греем, но
       // только первые: у иных заметок примеров полдесятка, а слушают обычно
       // один-два, и синтез остальных ушёл бы в квоту впустую.
       for (const example of note.examples.slice(0, PREFETCH_EXAMPLES)) {
-        prefetch({ url: null, text: example.text, cloud: true })
+        prefetch({
+          url: null,
+          text: example.text,
+          language: normalizeStudyLanguage(note.study_language),
+          cloud: true,
+        });
       }
-    }
-    warm(warmNote, warmDirection)
-    warm(nextNote, nextDirection)
-  }, [warmNote, warmDirection, nextNote, nextDirection, prefetch])
+    };
+    warm(warmNote, warmDirection);
+    warm(nextNote, nextDirection);
+  }, [warmNote, warmDirection, nextNote, nextDirection, prefetch]);
 
   useStudyHotkeys({
     revealed,
@@ -158,12 +195,12 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
     exit,
     enabled: !!current,
     cram,
-  })
+  });
 
   // Спиннер, а не скелетон карточки: плейсхолдер в форме карточки на долю
   // секунды читался бы как «слово уже показали», а весь экран - ровно про то,
   // чтобы слово появилось в нужный момент.
-  if (session.loading) return <LoadingScreen label="Собираю очередь…" />
+  if (session.loading) return <LoadingScreen label="Собираю очередь…" />;
 
   // Очередь не собралась - предлагаем повтор, а не пустой экран «всё выучено»:
   // молчаливый ноль здесь читался бы как «повторять нечего».
@@ -172,7 +209,7 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
       <div className="flex h-full flex-col px-5 pt-5 pb-6 lg:px-8">
         <LoadError what="карточки" onRetry={session.restart} />
       </div>
-    )
+    );
   }
 
   if (session.finished) {
@@ -186,24 +223,24 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
         // Прогон без расписания той же области: cram живёт в URL, а `key` на
         // сессии пересоберёт её под новый режим.
         onCram={() => {
-          const next = new URLSearchParams(params)
-          next.set('cram', '1')
-          setParams(next)
+          const next = new URLSearchParams(params);
+          next.set("cram", "1");
+          setParams(next);
         }}
       />
-    )
+    );
   }
 
-  if (!current) return null
+  if (!current) return null;
 
-  const total = done + counts.total
+  const total = done + counts.total;
   // Ярлык области: одна папка - её имя, несколько - счётчик, иначе «все».
   const scopeLabel =
-    scope.kind === 'folders'
+    scope.kind === "folders"
       ? scope.folderIds.length === 1
-        ? (session.folderName ?? 'Без папки')
-        : `${scope.folderIds.length} ${plural(scope.folderIds.length, 'папка', 'папки', 'папок')}`
-      : 'Все папки'
+        ? (session.folderName ?? "Без папки")
+        : `${scope.folderIds.length} ${plural(scope.folderIds.length, "папка", "папки", "папок")}`
+      : "Все папки";
 
   return (
     <div className="flex h-full flex-col px-5 pt-5 pb-6 lg:px-8 lg:pt-6 lg:pb-7">
@@ -282,7 +319,14 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
           // озвучивает облако (§6), а локальный синтез остаётся фолбэком.
           // Раньше здесь стоял голый `speak`, и примеры звучали системным
           // голосом мимо облака, в отличие от самого слова.
-          onSpeak={(text) => play({ url: null, text, cloud: true })}
+          onSpeak={(text) =>
+            play({
+              url: null,
+              text,
+              language: normalizeStudyLanguage(current.note.study_language),
+              cloud: true,
+            })
+          }
           onPlay={play}
         />
       </div>
@@ -297,7 +341,11 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
           >
             {/* В тренировке оценка ни на что не влияет - показываем честные
                 «Ещё раз»/«Дальше» вместо четырёх неработающих градаций. */}
-            {cram ? <CramBar onRate={rate} /> : <RatingBar options={options} onRate={rate} />}
+            {cram ? (
+              <CramBar onRate={rate} />
+            ) : (
+              <RatingBar options={options} onRate={rate} />
+            )}
           </motion.div>
         ) : (
           <button
@@ -310,5 +358,5 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
         )}
       </div>
     </div>
-  )
+  );
 }

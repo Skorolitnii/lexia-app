@@ -87,7 +87,6 @@ function releaseAudio(audio: HTMLAudioElement) {
 }
 
 export interface SpeechOptions {
-  language: StudyLanguage;
   rate: number;
   /**
    * Закреплённый голос устройства (`voiceURI`); перекрывает автоподбор языка.
@@ -95,6 +94,8 @@ export interface SpeechOptions {
    * поэтому и выбор показывается лишь при качестве «На устройстве».
    */
   voiceURI?: string | null;
+  /** Закреплённые голоса устройства по языкам. */
+  voiceURIs?: Partial<Record<StudyLanguage, string | null>>;
   /** Облачный синтез для фраз; `null` - выключен, играет локальный. */
   cloud?: CloudConfig | null;
 }
@@ -109,7 +110,7 @@ export interface Speech {
    * не попадает - он мгновенный.
    */
   pendingText: string | null;
-  speak: (text: string) => void;
+  speak: (text: string, language?: StudyLanguage) => void;
   /**
    * Озвучить источник из `cardSpeakSource`: живой голос словаря, если он есть,
    * иначе (и при любой осечке mp3) - синтез по `text`.
@@ -189,7 +190,7 @@ export function useSpeech(opts: SpeechOptions): Speech {
     return () => window.speechSynthesis.cancel();
   }, []);
 
-  const speak = useCallback((text: string) => {
+  const speak = useCallback((text: string, language: StudyLanguage = "en") => {
     const clean = text.trim();
     if (!supported || !clean) return;
 
@@ -202,12 +203,9 @@ export function useSpeech(opts: SpeechOptions): Speech {
     synth.cancel();
 
     const u = new SpeechSynthesisUtterance(clean);
-    const { language, rate, voiceURI } = optsRef.current;
-    const voice = pickVoice(
-      synth.getVoices() as VoiceLike[],
-      language,
-      voiceURI,
-    );
+    const { rate, voiceURI, voiceURIs } = optsRef.current;
+    const pinned = voiceURIs?.[language] ?? voiceURI;
+    const voice = pickVoice(synth.getVoices() as VoiceLike[], language, pinned);
     if (voice) {
       u.voice = voice as unknown as SpeechSynthesisVoice;
       u.lang = voice.lang;
@@ -408,7 +406,7 @@ export function useSpeech(opts: SpeechOptions): Speech {
    */
   const prefetch = useCallback((source: SpeakSource) => {
     if (!source.cloud) return;
-    const { language, rate, cloud } = optsRef.current;
+    const { rate, cloud } = optsRef.current;
     if (!cloud) return;
     // Одну фразу греем один раз за сессию. Без этого прогрев дёргал бы
     // функцию на каждый показ карточки: в dev service worker выключен
@@ -416,7 +414,7 @@ export function useSpeech(opts: SpeechOptions): Speech {
     if (warmedRef.current.has(source.text)) return;
     warmedRef.current.add(source.text);
 
-    const url = cachedAudioUrl(source.text, language, rate, cloud);
+    const url = cachedAudioUrl(source.text, source.language, rate, cloud);
     if (!url) return;
 
     // Здесь `await` безвреден, в отличие от `play`: прогрев ничего не
@@ -431,7 +429,12 @@ export function useSpeech(opts: SpeechOptions): Speech {
       // файла и не синтезирует повторно, а промах по GET светился бы
       // ошибкой. Ответ прогоняем обычным запросом, чтобы SW положил mp3
       // в кэш (у HEAD destination `empty` - такое правило SW не ловит).
-      const made = await synthesizeAudioUrl(source.text, language, rate, cloud);
+      const made = await synthesizeAudioUrl(
+        source.text,
+        source.language,
+        rate,
+        cloud,
+      );
       if (made) void fetch(made).catch(() => {});
     })();
   }, []);
@@ -445,8 +448,8 @@ export function useSpeech(opts: SpeechOptions): Speech {
    * фолбэк был бы слышен как робот вместо голоса.
    */
   const playViaCloud = useCallback(
-    (text: string, gesture: boolean) => {
-      const { language, rate, cloud } = optsRef.current;
+    (text: string, language: StudyLanguage, gesture: boolean) => {
+      const { rate, cloud } = optsRef.current;
       const token = playTokenRef.current + 1;
       playTokenRef.current = token;
 
@@ -472,10 +475,14 @@ export function useSpeech(opts: SpeechOptions): Speech {
             // автоплея фолбэка нет: не смогли облаком - молчим, а озвучка
             // ждёт тапа (файл к тому моменту готов и играет нормально).
             if (!made) {
-              if (gesture) speak(text);
+              if (gesture) speak(text, language);
               return;
             }
-            playUrl(made, text, gesture ? () => speak(text) : undefined);
+            playUrl(
+              made,
+              text,
+              gesture ? () => speak(text, language) : undefined,
+            );
           })
           .finally(() => {
             // Свежий клик уже поставил своё ожидание - чужое не трогаем.
@@ -490,7 +497,7 @@ export function useSpeech(opts: SpeechOptions): Speech {
       // лишнего запроса на каждое воспроизведение нет.
       const guess = cachedAudioUrl(text, language, rate, cloud ?? null);
       if (guess) playUrl(guess, text, onMiss);
-      else speak(text);
+      else speak(text, language);
     },
     [speak, playUrl],
   );
@@ -510,8 +517,8 @@ export function useSpeech(opts: SpeechOptions): Speech {
       if (!source.url) {
         // Обычный путь: синтезирует облако, локальный голос - фолбэк. На iOS
         // системные голоса компактные и звучат заметно хуже облачных.
-        if (source.cloud) playViaCloud(source.text, gesture);
-        else speak(source.text);
+        if (source.cloud) playViaCloud(source.text, source.language, gesture);
+        else speak(source.text, source.language);
         return;
       }
 
@@ -519,7 +526,7 @@ export function useSpeech(opts: SpeechOptions): Speech {
       // импортированного чужого JSON (§5). Не проигралось - откатываемся на
       // облако, и лишь оно, не сумев, отдаёт локальному синтезу.
       playUrl(source.url, source.text, () =>
-        playViaCloud(source.text, gesture),
+        playViaCloud(source.text, source.language, gesture),
       );
     },
     [speak, playUrl, unlock, playViaCloud],

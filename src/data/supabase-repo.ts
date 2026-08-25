@@ -2,7 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { State } from "ts-fsrs";
 import { buildCardsForNote, directionsFor } from "@/data/fsrs";
 import type { NotePageQuery, Repository } from "@/data/repo";
-import { normalizeStudyLanguage } from "@/speech/languages";
+import {
+  normalizeStudyLanguage,
+  normalizeVoiceByLanguage,
+} from "@/speech/languages";
 import type {
   CardRow,
   FolderRow,
@@ -444,6 +447,7 @@ export class SupabaseRepository implements Repository {
     return {
       ...row,
       study_language: normalizeStudyLanguage(row.study_language),
+      tts_voices: normalizeVoiceByLanguage(row.tts_voices),
     };
   }
 

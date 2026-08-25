@@ -1,4 +1,5 @@
 export type StudyLanguage = "en" | "de" | "it" | "fr" | "es";
+export type VoiceByLanguage = Partial<Record<StudyLanguage, string | null>>;
 
 export interface StudyLanguageOption {
   value: StudyLanguage;
@@ -60,6 +61,17 @@ export function normalizeStudyLanguage(value: unknown): StudyLanguage {
     : DEFAULT_STUDY_LANGUAGE;
 }
 
+export function normalizeVoiceByLanguage(value: unknown): VoiceByLanguage {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const raw = value as Record<string, unknown>;
+  const out: VoiceByLanguage = {};
+  for (const language of STUDY_LANGUAGES) {
+    const voice = raw[language.value];
+    if (typeof voice === "string" && voice.trim()) out[language.value] = voice;
+  }
+  return out;
+}
+
 export function languageOption(language: StudyLanguage): StudyLanguageOption {
   return (
     STUDY_LANGUAGES.find((item) => item.value === language) ??
@@ -69,4 +81,13 @@ export function languageOption(language: StudyLanguage): StudyLanguageOption {
 
 export function cloudVoice(language: StudyLanguage): string {
   return languageOption(language).azureVoice;
+}
+
+export function detectStudyLanguage(text: string): StudyLanguage {
+  const clean = text.toLowerCase();
+  if (/[ßäöü]/.test(clean)) return "de";
+  if (/[àèéìòù]/.test(clean)) return "it";
+  if (/[âêîôûëïüÿœç]/.test(clean)) return "fr";
+  if (/[áéíóúñ¿¡]/.test(clean)) return "es";
+  return DEFAULT_STUDY_LANGUAGE;
 }

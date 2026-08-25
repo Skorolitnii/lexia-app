@@ -3,7 +3,10 @@ import { useRepo } from "@/data/useRepo";
 import { SpeechContext } from "@/speech/SpeechContext";
 import { useSpeech } from "@/speech/useSpeech";
 import type { CloudConfig } from "@/speech/cloudTts";
-import { normalizeStudyLanguage, type StudyLanguage } from "@/speech/languages";
+import {
+  normalizeVoiceByLanguage,
+  type VoiceByLanguage,
+} from "@/speech/languages";
 import { isSupabaseConfigured, supabase } from "@/supabase/client";
 
 /**
@@ -39,7 +42,7 @@ export function SpeechProvider({ children }: { children: ReactNode }) {
   const repo = useRepo();
   const rate = FIXED_RATE;
   const [autoplay, setAutoplay] = useState(false);
-  const [studyLanguage, setStudyLanguage] = useState<StudyLanguage>("en");
+  const [voiceURIs, setVoiceURIs] = useState<VoiceByLanguage>({});
   const [cloud, setCloud] = useState(true);
   const [voiceURI, setVoiceURI] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -49,7 +52,7 @@ export function SpeechProvider({ children }: { children: ReactNode }) {
     void repo.getSettings().then((s) => {
       if (!active) return;
       setAutoplay(s.tts_autoplay);
-      setStudyLanguage(normalizeStudyLanguage(s.study_language));
+      setVoiceURIs(normalizeVoiceByLanguage(s.tts_voices));
       setCloud(s.tts_cloud);
       setVoiceURI(s.tts_voice);
     });
@@ -61,9 +64,9 @@ export function SpeechProvider({ children }: { children: ReactNode }) {
   // Выключенное облако = `null`: `useSpeech` тогда сразу идёт локальным
   // синтезом, не тратя запрос на заведомо ненужный резолв.
   const speech = useSpeech({
-    language: studyLanguage,
     rate,
     voiceURI,
+    voiceURIs,
     cloud: cloud ? CLOUD : null,
   });
 
@@ -73,7 +76,7 @@ export function SpeechProvider({ children }: { children: ReactNode }) {
         ...speech,
         rate,
         autoplay,
-        studyLanguage,
+        voiceURIs,
         cloud,
         voiceURI,
         reload: () => setTick((t) => t + 1),

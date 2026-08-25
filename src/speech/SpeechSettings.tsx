@@ -6,7 +6,7 @@ import { selectCls } from "@/components/formStyles";
 import {
   languageOption,
   STUDY_LANGUAGES,
-  type StudyLanguage,
+  type VoiceByLanguage,
 } from "@/speech/languages";
 import { deviceVoices } from "@/speech/voices";
 import { useSpeechContext } from "@/speech/useSpeechContext";
@@ -16,8 +16,8 @@ interface SettingsPatch {
   tts_rate?: number;
   tts_autoplay?: boolean;
   tts_voice?: string | null;
+  tts_voices?: VoiceByLanguage;
   tts_cloud?: boolean;
-  study_language?: StudyLanguage;
 }
 
 /**
@@ -97,18 +97,15 @@ export function SpeechSettings() {
     tts_rate: ctx.rate,
     tts_autoplay: ctx.autoplay,
     tts_voice: ctx.voiceURI,
+    tts_voices: ctx.voiceURIs,
     tts_cloud: ctx.cloud,
-    study_language: ctx.studyLanguage,
   });
 
   // const rate = shown.tts_rate ?? ctx.rate  // вместе с секцией «Скорость»
   const autoplay = shown.tts_autoplay ?? ctx.autoplay;
-  const studyLanguage = shown.study_language ?? ctx.studyLanguage;
-  const currentLanguage = languageOption(studyLanguage);
+  const voiceURIs = shown.tts_voices ?? ctx.voiceURIs;
   const cloud = shown.tts_cloud ?? ctx.cloud;
-  const voiceURI =
-    shown.tts_voice !== undefined ? shown.tts_voice : ctx.voiceURI;
-  const testPhrase = currentLanguage.testPhrase;
+  const testPhrase = languageOption("en").testPhrase;
 
   const save = (patch: SettingsPatch) => {
     // Показываем выбор сразу, пишем в фоне: настройки озвучки - не та правка,
@@ -124,11 +121,6 @@ export function SpeechSettings() {
       </div>
     );
   }
-
-  const languageVoices = deviceVoices(voices, studyLanguage);
-  // При пустом `voiceURI` (голос не выбран) select показывает фактический
-  // дефолт - тот же, что подберёт `pickVoice`, - чтобы UI совпадал со звуком.
-  const selectedURI = voiceURI ?? languageVoices[0]?.voiceURI ?? "";
 
   return (
     <div className="divide-y divide-line-faint">
@@ -183,7 +175,9 @@ export function SpeechSettings() {
             type="button"
             aria-label="Проверить озвучку"
             aria-busy={pendingText === testPhrase}
-            onClick={() => play({ url: null, text: testPhrase, cloud: true })}
+            onClick={() =>
+              play({ url: null, text: testPhrase, language: "en", cloud: true })
+            }
             className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-brand text-white"
           >
             {pendingText === testPhrase ? (
@@ -195,60 +189,80 @@ export function SpeechSettings() {
         </div>
       </div>
 
-      <div className="px-4 py-3.5 lg:flex lg:items-center lg:justify-between lg:gap-4">
-        <div className="min-w-0">
-          <div className="text-[14.5px] font-semibold text-ink">Язык</div>
-          <div className="mt-0.5 text-[12.5px] text-faint-2">
-            {currentLanguage.label}: {currentLanguage.hint}
-          </div>
-        </div>
-        <select
-          className={`${selectCls} mt-3 w-full py-2 text-[13px] lg:mt-0 lg:w-auto lg:min-w-[180px] lg:shrink-0`}
-          value={studyLanguage}
-          onChange={(e) =>
-            save({
-              study_language: e.target.value as StudyLanguage,
-              tts_voice: null,
-            })
-          }
-        >
-          {STUDY_LANGUAGES.map((language) => (
-            <option key={language.value} value={language.value}>
-              {language.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {/* Голос устройства. Показываем только при качестве «На устройстве»:
           облако говорит своим голосом, и при включённом облаке этот выбор не
           влиял бы ни на что - именно это и путало. */}
       {!cloud && (
-        <div className="px-4 py-3.5 lg:flex lg:items-center lg:justify-between lg:gap-4">
-          <div className="min-w-0">
-            <div className="text-[14.5px] font-semibold text-ink">Голос</div>
+        <div className="space-y-3 px-4 py-3.5">
+          <div>
+            <div className="text-[14.5px] font-semibold text-ink">
+              Голоса устройства
+            </div>
             <div className="mt-0.5 text-[12.5px] text-faint-2">
-              Из установленных в системе
+              Отдельно для каждого языка
             </div>
           </div>
-          {/* На мобайле во всю ширину: имена длинные («Саманта (en-US)»), и
-              рядом с заголовком select резался бы до нечитаемого. Кнопки
-              проверки здесь нет - она одна на раздел, в «Качестве». */}
-          <select
-            className={`${selectCls} mt-3 w-full py-2 text-[13px] lg:mt-0 lg:w-auto lg:max-w-[185px] lg:shrink-0`}
-            value={selectedURI}
-            onChange={(e) => save({ tts_voice: e.target.value || null })}
-            disabled={languageVoices.length === 0}
-          >
-            {languageVoices.length === 0 && (
-              <option value="">Авто ({currentLanguage.locale})</option>
-            )}
-            {languageVoices.map((v) => (
-              <option key={v.voiceURI} value={v.voiceURI}>
-                {v.name} ({v.lang})
-              </option>
-            ))}
-          </select>
+          <div className="space-y-2.5">
+            {STUDY_LANGUAGES.map((language) => {
+              const languageVoices = deviceVoices(voices, language.value);
+              const selectedURI =
+                voiceURIs[language.value] ?? languageVoices[0]?.voiceURI ?? "";
+              return (
+                <div
+                  key={language.value}
+                  className="gap-3 lg:flex lg:items-center lg:justify-between"
+                >
+                  <div className="min-w-0 text-[13.5px] font-bold text-muted">
+                    {language.label}
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-2 lg:mt-0">
+                    <select
+                      className={`${selectCls} min-w-0 flex-1 py-2 text-[13px] lg:w-[230px] lg:flex-none`}
+                      value={selectedURI}
+                      onChange={(e) =>
+                        save({
+                          tts_voices: {
+                            ...voiceURIs,
+                            [language.value]: e.target.value || null,
+                          },
+                        })
+                      }
+                      disabled={languageVoices.length === 0}
+                    >
+                      {languageVoices.length === 0 && (
+                        <option value="">Авто ({language.locale})</option>
+                      )}
+                      {languageVoices.map((v) => (
+                        <option key={v.voiceURI} value={v.voiceURI}>
+                          {v.name} ({v.lang})
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      aria-label={`Проверить ${language.label}`}
+                      aria-busy={pendingText === language.testPhrase}
+                      onClick={() =>
+                        play({
+                          url: null,
+                          text: language.testPhrase,
+                          language: language.value,
+                          cloud: true,
+                        })
+                      }
+                      className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-brand text-white"
+                    >
+                      {pendingText === language.testPhrase ? (
+                        <Spinner size={14} />
+                      ) : (
+                        <PlayIcon className="size-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

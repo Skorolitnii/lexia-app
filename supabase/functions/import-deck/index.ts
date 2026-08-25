@@ -56,6 +56,7 @@ interface DeckNote {
   back: string | null;
   details: string | null;
   examples: { text: string; translation?: string }[];
+  study_language?: string;
   reverse: boolean;
   tags: string[];
 }
@@ -170,16 +171,23 @@ function speakTexts(note: DeckNote): string[] {
 async function warmAudio(
   db: SupabaseClient,
   notes: DeckNote[],
-  language: string,
   rate: number,
 ): Promise<void> {
   if (!AZURE_KEY || !AZURE_REGION) return;
 
-  const voice = cloudVoice(language);
-  const texts = [...new Set(notes.flatMap(speakTexts))];
+  const byVoice = new Map<string, string[]>();
+  for (const note of notes) {
+    const voice = cloudVoice(normalizeStudyLanguage(note.study_language));
+    const list = byVoice.get(voice) ?? [];
+    list.push(...speakTexts(note));
+    byVoice.set(voice, list);
+  }
 
   let failed = 0;
-  await pool(texts, CONCURRENCY, async (text) => {
+  const jobs = [...byVoice].flatMap(([voice, texts]) =>
+    [...new Set(texts)].map((text) => ({ voice, text })),
+  );
+  await pool(jobs, CONCURRENCY, async ({ voice, text }) => {
     try {
       await ensureAudio(db, text, voice, rate, {
         key: AZURE_KEY,
@@ -197,7 +205,7 @@ async function warmAudio(
     }
   });
 
-  console.log(JSON.stringify({ at: "warm", phrases: texts.length, failed }));
+  console.log(JSON.stringify({ at: "warm", phrases: jobs.length, failed }));
 }
 
 // --- Запись ----------------------------------------------------------------
@@ -236,7 +244,6 @@ Deno.serve(async (req) => {
   let body: {
     notes?: unknown;
     folderId?: unknown;
-    language?: unknown;
     region?: unknown;
     rate?: unknown;
   };
@@ -254,7 +261,6 @@ Deno.serve(async (req) => {
   const notes = body.notes as DeckNote[];
 
   const folderId = typeof body.folderId === "string" ? body.folderId : null;
-  const language = normalizeStudyLanguage(body.language ?? body.region);
   const rate =
     typeof body.rate === "number" && body.rate >= 0.5 && body.rate <= 2
       ? body.rate
@@ -302,6 +308,7 @@ Deno.serve(async (req) => {
   // Словарь: транскрипции тянем параллельно, но пулом - импорт 50+ заметок в
   // один залп это шквал на публичный API (§7).
   const transcriptions = await pool(fresh, CONCURRENCY, (note) =>
+    normalizeStudyLanguage(note.study_language) === "en" &&
     note.type === "basic"
       ? transcriptionFor(note.front)
       : Promise.resolve(null),
@@ -321,6 +328,7 @@ Deno.serve(async (req) => {
     image_url: null,
     details: note.details,
     examples: note.examples,
+    study_language: normalizeStudyLanguage(note.study_language),
     reverse: note.reverse,
     tags: note.tags,
   }));
@@ -373,7 +381,7 @@ Deno.serve(async (req) => {
   // Прогрев - после ответа: импорт не должен ждать синтеза полусотни фраз.
   // `EdgeRuntime.waitUntil` держит инстанс живым, пока фоновая работа не
   // закончится; без него рантайм убил бы её сразу после `return`.
-  const warm = warmAudio(db, fresh, language, rate);
+  const warm = warmAudio(db, fresh, rate);
   const runtime = (
     globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }
   ).EdgeRuntime;

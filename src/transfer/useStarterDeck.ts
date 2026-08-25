@@ -18,9 +18,8 @@ import { STARTER_DECK_JSON, STARTER_DECK_TITLE } from "@/transfer/starterDeck";
  */
 export function useStarterDeck(onDone: () => void) {
   const repo = useRepo();
-  // Язык и скорость нужны серверу, чтобы синтезировать озвучку тем же
-  // голосом и с тем же ключом кэша, что попросит клиент при показе карточки.
-  const { studyLanguage, rate } = useSpeechContext();
+  // Скорость нужна серверу для ключа кэша; язык лежит в заметках стартовой колоды.
+  const { rate } = useSpeechContext();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Гейт от двойного клика: `setBusy` асинхронен, два синхронных клика оба
@@ -40,7 +39,7 @@ export function useStarterDeck(onDone: () => void) {
         color: DEFAULT_FOLDER_COLOR,
         position: 0,
       });
-      await importDeck(deck.notes, folder.id, studyLanguage, rate);
+      await importDeck(deck.notes, folder.id, rate);
       onDone();
     } catch {
       setError("Не удалось добавить колоду");
@@ -48,7 +47,7 @@ export function useStarterDeck(onDone: () => void) {
       running.current = false;
       setBusy(false);
     }
-  }, [repo, onDone, studyLanguage, rate]);
+  }, [repo, onDone, rate]);
 
   return { install, busy, error };
 }
