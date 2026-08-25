@@ -4,8 +4,9 @@ import { motion } from "motion/react";
 import type { CardRow, FolderRow, NoteRow } from "@/types";
 import { useRepo } from "@/data/useRepo";
 import { NO_FOLDER } from "@/data/queue";
-import { CheckIcon } from "@/components/icons";
+import { RepeatIcon, StudyIcon } from "@/components/icons";
 import { EmptyState } from "@/components/EmptyState";
+import { MobileSettingsButton } from "@/components/MobileSettingsButton";
 import { listContainer, listItem } from "@/components/motion";
 import { StudySetupSkeleton } from "@/study/StudySetupSkeleton";
 import {
@@ -14,7 +15,7 @@ import {
 } from "@/library/OnboardingSheets";
 import { FOLDER_GRAY, folderDotColor } from "@/library/folderColors";
 import { plural } from "@/study/format";
-import type { StudyMode } from "@/study/exercises";
+import type { StudyFlow } from "@/study/exercises";
 
 /** Счётчики папки для экрана выбора. */
 interface FolderStat {
@@ -33,21 +34,14 @@ interface FolderStat {
  */
 export function StudySetup({
   initialFolderId,
-  initialCram = false,
-  initialMode = "cards",
+  initialFlow = "learn",
   onStart,
 }: {
   /** Папка, с которой пришли (из «Учить папку»); undefined - стартуем со «все». */
   initialFolderId?: string | null;
-  /** Режим, с которым вернулись из сессии: выход не должен сбрасывать выбор. */
-  initialCram?: boolean;
-  /** Формат упражнений: обычные карточки или смешанный тренажёр. */
-  initialMode?: StudyMode;
-  onStart: (opts: {
-    folderIds: string[] | null;
-    cram: boolean;
-    mode: StudyMode;
-  }) => void;
+  /** Сценарий обучения: новое через карточки или повторы через mixed. */
+  initialFlow?: StudyFlow;
+  onStart: (opts: { folderIds: string[] | null; flow: StudyFlow }) => void;
 }) {
   const repo = useRepo();
   const [data, setData] = useState<{
@@ -59,8 +53,7 @@ export function StudySetup({
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(initialFolderId ? [initialFolderId] : []),
   );
-  const [cram, setCram] = useState(initialCram);
-  const [mode, setMode] = useState<StudyMode>(initialMode);
+  const [flow, setFlowState] = useState<StudyFlow>(initialFlow);
   // Модалка онбординга поверх пустого экрана (слово / импорт).
   const [sheet, setSheet] = useState<OnboardingSheet>(null);
   const [loadedAt] = useState(() => Date.now());
@@ -131,8 +124,13 @@ export function StudySetup({
       return next;
     });
 
+  const setFlow = (next: StudyFlow) => {
+    setFlowState(next);
+    setSelected(new Set());
+  };
+
   const start = () =>
-    onStart({ folderIds: selected.size ? [...selected] : null, cram, mode });
+    onStart({ folderIds: selected.size ? [...selected] : null, flow });
 
   if (!data) return <StudySetupSkeleton />;
 
@@ -166,83 +164,62 @@ export function StudySetup({
   // Выбираемые строки: настоящие папки + «Без папки». Первый элемент stats -
   // сводный бакет «все» (folder: null, без noFolder), его в список не берём.
   const folderStats = stats.filter((s) => s.folder !== null || s.noFolder);
-  const allStat = stats[0];
+  const visibleFolderStats = folderStats.filter((s) =>
+    flow === "learn" ? s.newCount > 0 : s.dueCount > 0,
+  );
 
   return (
     <div className="mx-auto flex h-full w-full max-w-[560px] flex-col px-5 py-7 lg:py-10">
-      <h1 className="text-[26px] font-extrabold text-ink lg:text-[30px]">
-        Что учим?
-      </h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-[26px] font-extrabold text-ink lg:text-[30px]">
+          Что учим?
+        </h1>
+        <MobileSettingsButton />
+      </div>
       <p className="mt-1.5 text-[14.5px] text-faint">
         Выберите папки или учите всё.
       </p>
 
-      {/* Режим. Подпись - под переключателем, а не на кнопках: на мобайле в
-          пилюлю не влезает ничего длиннее одного слова. */}
-      <div className="mt-6 flex gap-2 rounded-[14px] bg-rail p-1">
-        {[
-          { key: false, label: "Изучение" },
-          { key: true, label: "Повторение" },
-        ].map(({ key, label }) => (
-          <button
-            key={String(key)}
-            type="button"
-            onClick={() => setCram(key)}
-            aria-pressed={cram === key}
-            className={`flex-1 cursor-pointer rounded-[11px] py-2.5 text-[13.5px] font-bold transition-colors ${
-              cram === key ? "bg-card text-ink shadow-card" : "text-faint"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <p className="mt-2 px-1 text-[13px] leading-snug text-faint-2">
-        {cram
-          ? "Прогон всей папки в любой момент. Прогресс не меняется."
-          : "Новые слова и те, которым подошёл срок. Двигает прогресс."}
-      </p>
-
-      <div className="mt-5 grid grid-cols-2 gap-2">
+      <div className="mt-6 grid grid-cols-2 gap-2">
         {[
           {
-            key: "cards" as const,
-            title: "Карточки",
-            description: "Перевернуть или иногда написать ответ.",
+            key: "learn" as const,
+            title: "Изучение",
+            description: "Новые слова через карточки.",
+            Icon: StudyIcon,
           },
           {
-            key: "mixed" as const,
-            title: "Смешанный",
-            description: "Код, аудио, буквы, варианты и примеры.",
+            key: "review" as const,
+            title: "Повторение",
+            description: "Смешанные задания по знакомым словам.",
+            Icon: RepeatIcon,
           },
-        ].map((item) => {
-          const on = mode === item.key;
+        ].map(({ key, title, description, Icon }) => {
+          const on = flow === key;
           return (
             <button
-              key={item.key}
+              key={key}
               type="button"
-              onClick={() => setMode(item.key)}
+              onClick={() => setFlow(key)}
               aria-pressed={on}
-              className={`min-h-[96px] cursor-pointer rounded-[15px] border px-4 py-3.5 text-left transition-colors ${
+              className={`min-h-[108px] cursor-pointer rounded-[15px] border px-4 py-3.5 text-left transition-colors ${
                 on
                   ? "border-brand bg-brand-soft"
                   : "border-line bg-card hover:bg-rail"
               }`}
             >
-              <span className="flex items-center gap-2">
-                <span
-                  className={`flex size-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors ${
-                    on ? "border-brand bg-brand text-white" : "border-line"
-                  }`}
-                >
-                  {on && <CheckIcon className="size-3" />}
-                </span>
-                <span className="text-[15px] font-extrabold text-ink">
-                  {item.title}
-                </span>
+              <span
+                className={`flex size-9 items-center justify-center rounded-[12px] ${
+                  on ? "bg-brand text-white" : "bg-rail text-muted-2"
+                }`}
+              >
+                <Icon className="size-5" strokeWidth={2.25} />
               </span>
-              <span className="mt-2 block text-[12.5px] leading-snug text-faint-2">
-                {item.description}
+              <span className="mt-3 block text-[15px] font-extrabold text-ink">
+                {title}
+              </span>
+              <span className="mt-1.5 block text-[12.5px] leading-snug text-faint-2">
+                {description}
               </span>
             </button>
           );
@@ -260,18 +237,19 @@ export function StudySetup({
           initial="hidden"
           animate="visible"
         >
-          {folderStats.length === 0 && (
+          {visibleFolderStats.length === 0 && (
             <p className="px-1 py-4 text-[14px] text-faint">
-              Папок пока нет - {allStat?.noteCount ?? 0}{" "}
-              {plural(allStat?.noteCount ?? 0, "слово", "слова", "слов")} без
-              папки.
+              {flow === "learn"
+                ? "Новых слов сейчас нет."
+                : "Повторений сейчас нет."}
             </p>
           )}
-          {folderStats.map((s) => {
+          {visibleFolderStats.map((s) => {
             // «Без папки» - псевдо-строка с id-сентинелом; у настоящей папки свой id.
             const id = s.noFolder ? NO_FOLDER : s.folder!.id;
             const name = s.noFolder ? "Без папки" : s.folder!.name;
             const on = selected.has(id);
+            const count = flow === "learn" ? s.newCount : s.dueCount;
             return (
               <motion.button
                 key={id}
@@ -286,14 +264,9 @@ export function StudySetup({
                 }`}
               >
                 <span
-                  className={`flex size-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors ${
-                    on ? "border-brand bg-brand text-white" : "border-line"
+                  className={`size-2.5 shrink-0 rounded-full ring-4 transition-shadow ${
+                    on ? "ring-brand-soft" : "ring-transparent"
                   }`}
-                >
-                  {on && <CheckIcon className="size-3" />}
-                </span>
-                <span
-                  className="size-2.5 shrink-0 rounded-full"
                   style={{
                     background: s.noFolder
                       ? FOLDER_GRAY
@@ -305,12 +278,10 @@ export function StudySetup({
                 >
                   {name}
                 </span>
-                <span className="shrink-0 text-[13px] text-faint-2">
-                  {cram
-                    ? `${s.noteCount} ${plural(s.noteCount, "слово", "слова", "слов")}`
-                    : s.dueCount + s.newCount > 0
-                      ? `${s.dueCount + s.newCount} к изучению`
-                      : "на сегодня всё"}
+                <span className="shrink-0 text-[13px] font-semibold text-faint-2">
+                  {flow === "learn"
+                    ? `${count} ${plural(count, "новое", "новых", "новых")}`
+                    : `${count} к повтору`}
                 </span>
               </motion.button>
             );
@@ -321,9 +292,10 @@ export function StudySetup({
       <button
         type="button"
         onClick={start}
-        className="mt-5 w-full cursor-pointer rounded-[16px] bg-brand px-4 py-4 text-[15px] font-extrabold text-white shadow-fab"
+        disabled={visibleFolderStats.length === 0}
+        className="mt-5 w-full cursor-pointer rounded-[16px] bg-brand px-4 py-4 text-[15px] font-extrabold text-white shadow-fab disabled:cursor-not-allowed disabled:bg-brand-muted disabled:shadow-none"
       >
-        {cram ? "Начать повторение" : "Начать изучение"}
+        {flow === "learn" ? "Начать изучение" : "Начать повторение"}
       </button>
     </div>
   );

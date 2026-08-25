@@ -7,6 +7,7 @@ import {
   buildQueue,
   queueCounts,
   queueOutlook,
+  type QueueOptions,
   type QueueOutlook,
   type Scope,
 } from "@/data/queue";
@@ -60,6 +61,7 @@ const GRADES: Grade[] = [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy];
 export function useStudySession(
   scope: Scope = { kind: "all" },
   cram = false,
+  kind: QueueOptions["kind"] = "all",
 ): StudySession {
   const repo = useRepo();
 
@@ -105,6 +107,7 @@ export function useStudySession(
           scope: parsedScope,
           newCardsLeft,
           cram,
+          kind,
         });
         // Резерв считаем от того же остатка: экран итога должен объяснить, из-за
         // чего очередь пуста - лимит или в папке правда ничего не осталось.
@@ -138,7 +141,7 @@ export function useStudySession(
     return () => {
       active = false;
     };
-  }, [repo, scopeKey, cram, reloadKey]);
+  }, [repo, scopeKey, cram, kind, reloadKey]);
 
   const current = useMemo(() => {
     const card = queue[0];

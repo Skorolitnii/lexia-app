@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import { AddIcon, ImportIcon, StudyIcon } from "@/components/icons";
 import { Spinner } from "@/components/Loading";
+import { MobileSettingsButton } from "@/components/MobileSettingsButton";
 import { softSpring } from "@/components/motion";
 import {
   STARTER_DECK_PRESETS,
@@ -91,7 +92,10 @@ export function EmptyState({
   ];
 
   return (
-    <div className="flex flex-1 justify-center px-5 pt-8 pb-10 lg:px-10 lg:pt-[72px] lg:pb-14">
+    <div className="relative flex flex-1 justify-center px-5 pt-8 pb-10 lg:px-10 lg:pt-[72px] lg:pb-14">
+      <div className="absolute top-5 right-5 lg:hidden">
+        <MobileSettingsButton />
+      </div>
       <motion.div
         className="w-full max-w-[760px]"
         initial={{ opacity: 0, y: 14 }}

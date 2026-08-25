@@ -5,12 +5,19 @@ import { AccountPanel } from '@/supabase/AccountPanel'
 import { SpeechSettings } from '@/speech/SpeechSettings'
 import { StudySettings } from '@/study/StudySettings'
 import { useRepo } from '@/data/useRepo'
-import { backupFileName, BackupParseError, buildBackup, parseBackup } from '@/transfer/backup'
+import {
+  backupFileName,
+  BackupParseError,
+  buildBackup,
+  parseBackup,
+} from '@/transfer/backup'
 import { plural } from '@/study/format'
 
 /** Скачать текст файлом - без этого «экспорт» некуда деть. */
 function download(name: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
+  const url = URL.createObjectURL(
+    new Blob([text], { type: 'application/json' }),
+  )
   const a = document.createElement('a')
   a.href = url
   a.download = name
@@ -35,10 +42,14 @@ function Row({
   return (
     <div className="flex items-center justify-between gap-4 border-b border-line-faint px-4 py-3.5 last:border-b-0">
       <div className="min-w-0">
-        <div className={`text-[14.5px] font-semibold ${danger ? 'text-again' : 'text-ink'}`}>
+        <div
+          className={`text-[14.5px] font-semibold ${danger ? 'text-again' : 'text-ink'}`}
+        >
           {title}
         </div>
-        {hint && <div className="mt-0.5 text-[12.5px] text-faint-2">{hint}</div>}
+        {hint && (
+          <div className="mt-0.5 text-[12.5px] text-faint-2">{hint}</div>
+        )}
       </div>
       <div className="shrink-0">{children}</div>
     </div>
@@ -79,7 +90,9 @@ export function SettingsPage() {
     try {
       backup = parseBackup(await file.text())
     } catch (e) {
-      setStatus(e instanceof BackupParseError ? e.message : 'Не удалось прочитать файл')
+      setStatus(
+        e instanceof BackupParseError ? e.message : 'Не удалось прочитать файл',
+      )
       return
     }
 
@@ -94,7 +107,9 @@ export function SettingsPage() {
     setRunning('restore')
     try {
       await repo.replaceAll(backup)
-      setStatus('Данные восстановлены. Перезагрузите страницу, чтобы увидеть их.')
+      setStatus(
+        'Данные восстановлены. Перезагрузите страницу, чтобы увидеть их.',
+      )
     } catch {
       setStatus('Не удалось восстановить данные')
     } finally {
@@ -103,7 +118,7 @@ export function SettingsPage() {
   }
 
   return (
-    <PageShell title="Настройки">
+    <PageShell title="Настройки" settingsAction={false}>
       <div className="mb-3 text-[11px] font-extrabold tracking-[0.06em] text-label uppercase">
         Аккаунт
       </div>
@@ -130,12 +145,21 @@ export function SettingsPage() {
       </div>
       <div className="rounded-[16px] bg-card shadow-card">
         <Row title="Экспорт всех данных" hint="Полный бэкап">
-          <button type="button" disabled={busy} onClick={() => void exportAll()} className={btnCls}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void exportAll()}
+            className={btnCls}
+          >
             {running === 'export' && <Spinner size={13} />}
             {running === 'export' ? 'Выгружаю…' : 'Экспортировать'}
           </button>
         </Row>
-        <Row title="Восстановить из бэкапа" hint="Заменит все текущие данные" danger>
+        <Row
+          title="Восстановить из бэкапа"
+          hint="Заменит все текущие данные"
+          danger
+        >
           <button
             type="button"
             disabled={busy}

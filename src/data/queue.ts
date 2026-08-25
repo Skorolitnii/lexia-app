@@ -21,6 +21,8 @@ export interface QueueOptions {
   newCardsLeft: number
   /** Cram: берём все карточки папки вне расписания и не трогаем FSRS. */
   cram?: boolean
+  /** Learn берёт новые, review - только подошедшие повторения, all - старое смешение. */
+  kind?: 'all' | 'learn' | 'review'
   now?: Date
 }
 
@@ -50,17 +52,33 @@ function shuffle<T>(items: T[]): T[] {
 export function buildQueue(
   cards: CardRow[],
   notes: NoteRow[],
-  { scope, newCardsLeft, cram = false, now = new Date() }: QueueOptions,
+  {
+    scope,
+    newCardsLeft,
+    cram = false,
+    kind = 'all',
+    now = new Date(),
+  }: QueueOptions,
 ): CardRow[] {
   const notesById = new Map(notes.map((n) => [n.id, n]))
-  const scoped = cards.filter((c) => !c.suspended && inScope(notesById.get(c.note_id), scope))
+  const scoped = cards.filter(
+    (c) => !c.suspended && inScope(notesById.get(c.note_id), scope),
+  )
 
   // Cram: вся папка вне расписания, порядок случайный.
   if (cram) return shuffle(scoped)
 
-  const due = scoped.filter((c) => c.state !== State.New && new Date(c.due) <= now)
+  const due = scoped.filter(
+    (c) => c.state !== State.New && new Date(c.due) <= now,
+  )
   const fresh = scoped.filter((c) => c.state === State.New)
-  return shuffle([...due, ...shuffle(fresh).slice(0, Math.max(0, newCardsLeft))])
+  if (kind === 'learn')
+    return shuffle(fresh).slice(0, Math.max(0, newCardsLeft))
+  if (kind === 'review') return shuffle(due)
+  return shuffle([
+    ...due,
+    ...shuffle(fresh).slice(0, Math.max(0, newCardsLeft)),
+  ])
 }
 
 /**
@@ -81,7 +99,9 @@ export function queueOutlook(
   { scope, newCardsLeft, now = new Date() }: Omit<QueueOptions, 'cram'>,
 ): QueueOutlook {
   const notesById = new Map(notes.map((n) => [n.id, n]))
-  const scoped = cards.filter((c) => !c.suspended && inScope(notesById.get(c.note_id), scope))
+  const scoped = cards.filter(
+    (c) => !c.suspended && inScope(notesById.get(c.note_id), scope),
+  )
 
   const fresh = scoped.filter((c) => c.state === State.New).length
   // Отрицательный остаток (норму уже перебрали добором) не должен «съедать»

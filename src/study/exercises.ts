@@ -2,6 +2,7 @@ import type { CardRow, NoteRow } from "@/types";
 import { parseCloze } from "@/study/cloze";
 
 export type StudyMode = "cards" | "mixed";
+export type StudyFlow = "learn" | "review";
 
 export type ExerciseKind =
   "flashcard" | "typed" | "choice" | "audio" | "letters" | "example";

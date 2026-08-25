@@ -17,12 +17,12 @@ import { plural } from "@/study/format";
 import { useStudyHotkeys } from "@/study/useStudyHotkeys";
 import { useStudySession } from "@/study/useStudySession";
 import {
-  STUDY_MODE_LABEL,
   answerForExercise,
   choiceOptions,
   exampleOptions,
   mixedExerciseKind,
   type ExerciseKind,
+  type StudyFlow,
   type StudyMode,
 } from "@/study/exercises";
 import { normalizeStudyLanguage } from "@/speech/languages";
@@ -62,8 +62,10 @@ function typedAnswerTurn(cardId: string, done: number): boolean {
   return (hash + done) % 3 === 0;
 }
 
-function parseStudyMode(value: string | null): StudyMode {
-  return value === "mixed" ? "mixed" : "cards";
+function parseStudyFlow(params: URLSearchParams): StudyFlow {
+  if (params.get("flow") === "review" || params.get("mode") === "mixed")
+    return "review";
+  return "learn";
 }
 
 export function StudyPage() {
@@ -74,13 +76,11 @@ export function StudyPage() {
     return (
       <StudySetup
         initialFolderId={params.get("folder")}
-        initialCram={params.get("cram") === "1"}
-        initialMode={parseStudyMode(params.get("mode"))}
-        onStart={({ folderIds, cram, mode }) => {
+        initialFlow={parseStudyFlow(params)}
+        onStart={({ folderIds, flow }) => {
           const next = new URLSearchParams();
           folderIds?.forEach((id) => next.append("folder", id));
-          if (cram) next.set("cram", "1");
-          if (mode !== "cards") next.set("mode", mode);
+          if (flow === "review") next.set("flow", "review");
           next.set("go", "1");
           setParams(next);
         }}
@@ -93,7 +93,8 @@ export function StudyPage() {
     ? { kind: "folders", folderIds }
     : { kind: "all" };
   const cram = params.get("cram") === "1";
-  const mode = parseStudyMode(params.get("mode"));
+  const flow = parseStudyFlow(params);
+  const mode: StudyMode = flow === "review" ? "mixed" : "cards";
 
   // key: смена области/режима пересобирает сессию с нуля (хук читает scope
   // только при монтировании).
@@ -102,6 +103,7 @@ export function StudyPage() {
       key={params.toString()}
       scope={scope}
       cram={cram}
+      flow={flow}
       mode={mode}
     />
   );
@@ -110,15 +112,22 @@ export function StudyPage() {
 function StudySession({
   scope,
   cram,
+  flow,
   mode,
 }: {
   scope: Scope;
   cram: boolean;
+  flow: StudyFlow;
   mode: StudyMode;
 }) {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const session = useStudySession(scope, cram);
+  const session = useStudySession(scope, cram, cram ? "all" : flow);
+  const sessionLabel = cram
+    ? "Тренировка"
+    : flow === "learn"
+      ? "Изучение"
+      : "Повторение";
   const {
     current,
     next,
@@ -320,6 +329,7 @@ function StudySession({
         onCram={() => {
           const next = new URLSearchParams(params);
           next.set("cram", "1");
+          next.set("flow", "review");
           setParams(next);
         }}
       />
@@ -373,7 +383,7 @@ function StudySession({
             {scopeLabel}
           </span>
           <span className="hidden text-[13px] text-faint-2 lg:inline">
-            {STUDY_MODE_LABEL[mode]} · {done} / {total}
+            {sessionLabel} · {done} / {total}
           </span>
         </div>
 

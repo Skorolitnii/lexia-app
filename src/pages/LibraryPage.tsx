@@ -6,6 +6,7 @@ import { SearchIcon, AddIcon, ImportIcon, PlayIcon } from "@/components/icons";
 import { EmptyState } from "@/components/EmptyState";
 import { TYPE_LABEL } from "@/components/formStyles";
 import { SelectField } from "@/components/SelectField";
+import { MobileSettingsButton } from "@/components/MobileSettingsButton";
 import { useRepo } from "@/data/useRepo";
 import { FolderList } from "@/library/FolderList";
 import { FolderEditor } from "@/library/FolderEditor";
@@ -371,6 +372,7 @@ export function LibraryPage() {
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
+              <MobileSettingsButton />
               {canInstallStarterHere && (
                 <button
                   type="button"
