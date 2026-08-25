@@ -15,7 +15,7 @@ import {
   lookupKey,
   type NoteDraft,
 } from "@/library/draft";
-import { STUDY_LANGUAGES } from "@/speech/languages";
+import { STUDY_LANGUAGES, languageOption } from "@/speech/languages";
 import {
   useDictionary,
   type DictionaryState,
@@ -196,6 +196,7 @@ export function NoteForm({
 
   const { front } = draft;
   const isCloze = draft.type === "cloze";
+  const studyLanguage = languageOption(draft.study_language);
   const clozeValid = !isCloze || /\{\{.+?\}\}/.test(front);
   // Папка обязательна. Новая создаётся сразу в своём окне, поэтому к моменту
   // сохранения заметки она уже существует и лежит в `folder_id`.
@@ -228,7 +229,9 @@ export function NoteForm({
   else
     footerHint =
       `Сохранит ${count} ${plural(count, "карточку", "карточки", "карточек")} в «${folderName}»` +
-      (!isCloze && draft.reverse ? " - EN → RU и RU → EN" : "");
+      (!isCloze && draft.reverse
+        ? ` - ${studyLanguage.shortLabel} → RU и RU → ${studyLanguage.shortLabel}`
+        : "");
 
   // Словарь молчит для cloze и фраз - он знает только отдельные слова (§4).
   const dict = useDictionary(front, !isCloze && draft.study_language === "en");
@@ -447,7 +450,7 @@ export function NoteForm({
                 Обратная карточка
               </span>
               <span className="block text-[12.5px] text-faint">
-                RU → EN, своё расписание
+                RU → {studyLanguage.shortLabel}, своё расписание
               </span>
             </span>
             <span

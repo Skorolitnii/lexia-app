@@ -9,7 +9,7 @@ import { cardSpeakSource, type SpeakSource } from "@/speech/audioSource";
 import { DetailsPanel, DETAILS_LABEL } from "@/study/DetailsPanel";
 import { useSpeechContext } from "@/speech/useSpeechContext";
 import { Spinner } from "@/components/Loading";
-import { normalizeStudyLanguage } from "@/speech/languages";
+import { languageOption, normalizeStudyLanguage } from "@/speech/languages";
 import {
   answerForExercise,
   letterTiles,
@@ -19,11 +19,12 @@ import {
   type ExerciseKind,
 } from "@/study/exercises";
 
-const DIRECTION_LABEL: Record<CardRow["direction"], string> = {
-  forward: "EN → RU",
-  reverse: "RU → EN",
-  cloze: "ПРОПУСК",
-};
+function directionLabel(card: CardRow, note: NoteRow): string {
+  const language = languageOption(normalizeStudyLanguage(note.study_language));
+  if (card.direction === "forward") return `${language.shortLabel} → RU`;
+  if (card.direction === "reverse") return `RU → ${language.shortLabel}`;
+  return "ПРОПУСК";
+}
 
 /**
  * Кнопка info: одна на оба типа карточек. Раньше обычная карточка и cloze
@@ -504,7 +505,7 @@ function CardFront({
       <div className="w-full px-7 lg:px-10">
         <span className="self-start rounded-pill bg-brand-soft px-3 py-1.5 text-[11px] font-extrabold tracking-[0.05em] text-brand-ink">
           {exerciseKind === "flashcard"
-            ? DIRECTION_LABEL[card.direction]
+            ? directionLabel(card, note)
             : "ТРЕНАЖЁР"}
         </span>
       </div>

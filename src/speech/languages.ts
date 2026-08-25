@@ -4,6 +4,7 @@ export type VoiceByLanguage = Partial<Record<StudyLanguage, string | null>>;
 export interface StudyLanguageOption {
   value: StudyLanguage;
   label: string;
+  shortLabel: string;
   hint: string;
   locale: string;
   azureVoice: string;
@@ -14,6 +15,7 @@ export const STUDY_LANGUAGES: readonly StudyLanguageOption[] = [
   {
     value: "en",
     label: "English",
+    shortLabel: "EN",
     hint: "US pronunciation",
     locale: "en-US",
     azureVoice: "en-US-AvaMultilingualNeural",
@@ -22,6 +24,7 @@ export const STUDY_LANGUAGES: readonly StudyLanguageOption[] = [
   {
     value: "de",
     label: "Deutsch",
+    shortLabel: "DE",
     hint: "German voice",
     locale: "de-DE",
     azureVoice: "de-DE-SeraphinaMultilingualNeural",
@@ -30,6 +33,7 @@ export const STUDY_LANGUAGES: readonly StudyLanguageOption[] = [
   {
     value: "it",
     label: "Italiano",
+    shortLabel: "IT",
     hint: "Italian voice",
     locale: "it-IT",
     azureVoice: "it-IT-IsabellaMultilingualNeural",
@@ -38,6 +42,7 @@ export const STUDY_LANGUAGES: readonly StudyLanguageOption[] = [
   {
     value: "fr",
     label: "Français",
+    shortLabel: "FR",
     hint: "French voice",
     locale: "fr-FR",
     azureVoice: "fr-FR-DeniseNeural",
@@ -46,6 +51,7 @@ export const STUDY_LANGUAGES: readonly StudyLanguageOption[] = [
   {
     value: "es",
     label: "Español",
+    shortLabel: "ES",
     hint: "Spanish voice",
     locale: "es-ES",
     azureVoice: "es-ES-ElviraNeural",
