@@ -31,6 +31,8 @@ export interface StudySession {
   current: { card: CardRow; note: NoteRow } | null;
   /** Следующая в очереди - только для прогрева озвучки, в UI не показывается. */
   next: { card: CardRow; note: NoteRow } | null;
+  /** Все заметки области аккаунта: нужны тренажёрам для вариантов ответа. */
+  notes: NoteRow[];
   folderName: string | null;
   revealed: boolean;
   reveal: () => void;
@@ -64,6 +66,7 @@ export function useStudySession(
   /** Загруженная сессия: очередь + справочники. null - ещё грузится. */
   interface Loaded {
     notesById: Map<string, NoteRow>;
+    notes: NoteRow[];
     /** Имя папки сессии; фиксируется при сборке, чтобы жить и на экране итога. */
     folderName: string | null;
     initialTotal: number;
@@ -114,6 +117,7 @@ export function useStudySession(
           : null;
         setLoaded({
           notesById,
+          notes: allNotes,
           folderName:
             allFolders.find((f) => f.id === firstFolderId)?.name ?? null,
           initialTotal: built.length,
@@ -230,6 +234,7 @@ export function useStudySession(
     error,
     current,
     next,
+    notes: loaded?.notes ?? [],
     folderName,
     revealed,
     reveal,

@@ -9,6 +9,15 @@ import { cardSpeakSource, type SpeakSource } from "@/speech/audioSource";
 import { DetailsPanel, DETAILS_LABEL } from "@/study/DetailsPanel";
 import { useSpeechContext } from "@/speech/useSpeechContext";
 import { Spinner } from "@/components/Loading";
+import { normalizeStudyLanguage } from "@/speech/languages";
+import {
+  answerForExercise,
+  letterTiles,
+  normalizeAnswer,
+  typedExpectedAnswer,
+  type ChoiceOption,
+  type ExerciseKind,
+} from "@/study/exercises";
 
 const DIRECTION_LABEL: Record<CardRow["direction"], string> = {
   forward: "EN → RU",
@@ -186,25 +195,6 @@ function Transcription({ value }: { value: string | null }) {
   return <span className="text-hint font-medium">{value}</span>;
 }
 
-function typedExpectedAnswer(card: CardRow, note: NoteRow): string {
-  if (card.direction === "reverse") return note.front;
-  if (card.direction === "cloze") {
-    return parseCloze(note.front)
-      .filter((seg) => seg.blank)
-      .map((seg) => seg.text)
-      .join(" ");
-  }
-  return note.back ?? "";
-}
-
-function normalizeAnswer(value: string): string {
-  return value
-    .trim()
-    .toLocaleLowerCase()
-    .replace(/[.,!?;:()[\]{}"«»]/g, "")
-    .replace(/\s+/g, " ");
-}
-
 function AnswerDiff({
   expected,
   actual,
@@ -297,7 +287,7 @@ function TypedAnswer({
 }: {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: () => void;
+  onSubmit: (value?: string) => void;
 }) {
   return (
     <div className="w-full px-4 pb-4">
@@ -323,6 +313,168 @@ function TypedAnswer({
   );
 }
 
+function ExerciseHint({ children }: { children: string }) {
+  return (
+    <div className="rounded-pill bg-brand-soft px-3 py-1.5 text-[11px] font-extrabold tracking-[0.05em] text-brand-ink uppercase">
+      {children}
+    </div>
+  );
+}
+
+function ChoiceExercise({
+  prompt,
+  options,
+  onChoose,
+}: {
+  prompt: string;
+  options: ChoiceOption[];
+  onChoose: (option: ChoiceOption) => void;
+}) {
+  return (
+    <div className="flex w-full flex-1 flex-col justify-center gap-5 px-6 text-center lg:px-10">
+      <div>
+        <ExerciseHint>Выберите ответ</ExerciseHint>
+        <p
+          className={`mt-4 leading-tight font-extrabold break-words text-ink ${promptSizeCls(prompt)}`}
+        >
+          {prompt}
+        </p>
+      </div>
+      <div className="grid gap-2 text-left">
+        {options.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChoose(option);
+            }}
+            className="min-h-[52px] cursor-pointer rounded-[14px] border border-line bg-card-soft px-4 py-3 text-[15px] font-bold text-ink transition-colors hover:border-brand hover:bg-brand-tint"
+          >
+            {option.text}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AudioWriteExercise({
+  answer,
+  value,
+  onChange,
+  onSubmit,
+  onPlay,
+  note,
+}: {
+  answer: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: (value?: string) => void;
+  onPlay: (source: SpeakSource) => void;
+  note: NoteRow;
+}) {
+  const source: SpeakSource = {
+    url: null,
+    text: answer,
+    language: normalizeStudyLanguage(note.study_language),
+    cloud: true,
+  };
+  return (
+    <div className="flex w-full flex-1 flex-col items-center justify-center gap-5 px-6 text-center lg:px-10">
+      <ExerciseHint>На слух</ExerciseHint>
+      <SpeakButton source={source} onPlay={onPlay} />
+      <p className="text-[15px] font-semibold text-faint">
+        Прослушайте и напишите слово
+      </p>
+      <TypedAnswer value={value} onChange={onChange} onSubmit={onSubmit} />
+    </div>
+  );
+}
+
+function LetterExercise({
+  answer,
+  prompt,
+  value,
+  onChange,
+  onSubmit,
+}: {
+  answer: string;
+  prompt: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: (value?: string) => void;
+}) {
+  const compactAnswer = answer.replace(/\s+/g, "");
+  const tiles = letterTiles(answer);
+  const [picked, setPicked] = useState<number[]>([]);
+  const renderedValue = picked.map((i) => tiles[i]).join("");
+  return (
+    <div className="flex w-full flex-1 flex-col justify-center gap-5 px-6 text-center lg:px-10">
+      <div>
+        <ExerciseHint>Соберите слово</ExerciseHint>
+        {prompt && (
+          <p className="mt-4 text-[18px] font-bold text-ink">{prompt}</p>
+        )}
+      </div>
+      <div className="min-h-[48px] rounded-[14px] border border-line bg-card-soft px-4 py-3 font-mono text-[22px] font-bold tracking-[0.08em] text-ink">
+        {renderedValue || <span className="text-hint">...</span>}
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        {tiles.map((char, i) => {
+          const used = picked.includes(i);
+          return (
+            <button
+              key={`${char}-${i}`}
+              type="button"
+              disabled={used}
+              onClick={(e) => {
+                e.stopPropagation();
+                const pickedNext = [...picked, i];
+                const next = pickedNext
+                  .map((tileIndex) => tiles[tileIndex])
+                  .join("");
+                setPicked(pickedNext);
+                onChange(next);
+                if (normalizeAnswer(next) === normalizeAnswer(compactAnswer))
+                  onSubmit(next);
+              }}
+              className="flex size-11 cursor-pointer items-center justify-center rounded-[12px] border border-line bg-card text-[18px] font-extrabold text-ink shadow-card disabled:cursor-not-allowed disabled:opacity-25"
+            >
+              {char}
+            </button>
+          );
+        })}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            const pickedNext = picked.slice(0, -1);
+            setPicked(pickedNext);
+            onChange(pickedNext.map((tileIndex) => tiles[tileIndex]).join(""));
+          }}
+          className="cursor-pointer rounded-[13px] bg-rail px-4 py-3 text-[13px] font-bold text-muted-2"
+        >
+          Стереть
+        </button>
+        <button
+          type="button"
+          disabled={!value}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSubmit(value);
+          }}
+          className="cursor-pointer rounded-[13px] bg-brand px-4 py-3 text-[13px] font-bold text-white disabled:cursor-not-allowed disabled:bg-brand-muted"
+        >
+          Проверить
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** Лицо карточки - зависит от направления. */
 function CardFront({
   card,
@@ -330,6 +482,9 @@ function CardFront({
   hidden,
   typedAnswer,
   typedAnswerEnabled,
+  exerciseKind,
+  answerChoices,
+  exampleChoices,
   onTypedAnswerChange,
   onTypedAnswerSubmit,
   onPlay,
@@ -339,8 +494,11 @@ function CardFront({
   hidden: boolean;
   typedAnswer: string;
   typedAnswerEnabled: boolean;
+  exerciseKind: ExerciseKind;
+  answerChoices: ChoiceOption[];
+  exampleChoices: ChoiceOption[];
   onTypedAnswerChange: (value: string) => void;
-  onTypedAnswerSubmit: () => void;
+  onTypedAnswerSubmit: (value?: string) => void;
   onPlay: (source: SpeakSource) => void;
 }) {
   const isCloze = card.direction === "cloze";
@@ -356,37 +514,76 @@ function CardFront({
     >
       <div className="w-full px-7 lg:px-10">
         <span className="self-start rounded-pill bg-brand-soft px-3 py-1.5 text-[11px] font-extrabold tracking-[0.05em] text-brand-ink">
-          {DIRECTION_LABEL[card.direction]}
+          {exerciseKind === "flashcard"
+            ? DIRECTION_LABEL[card.direction]
+            : "ТРЕНАЖЁР"}
         </span>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-7 text-center lg:px-10">
-        {isCloze ? (
-          <p className="text-2xl leading-relaxed font-bold text-ink lg:text-[32px] lg:leading-relaxed">
-            {parseCloze(note.front).map((seg, i) =>
-              seg.blank ? (
-                <ClozeBlank key={i} hint={seg.hint} />
-              ) : (
-                <span key={i}>{seg.text}</span>
-              ),
-            )}
-          </p>
-        ) : (
-          <p
-            className={`leading-tight font-extrabold break-words text-ink ${promptSizeCls(prompt)}`}
-          >
-            {prompt}
-          </p>
-        )}
+      {exerciseKind === "choice" && answerChoices.length >= 2 ? (
+        <ChoiceExercise
+          prompt={prompt}
+          options={answerChoices}
+          onChoose={(option) => {
+            onTypedAnswerChange(option.text);
+            onTypedAnswerSubmit(option.text);
+          }}
+        />
+      ) : exerciseKind === "example" && exampleChoices.length >= 2 ? (
+        <ChoiceExercise
+          prompt={`Где правильно используется «${note.front}»?`}
+          options={exampleChoices}
+          onChoose={(option) => {
+            onTypedAnswerChange(option.text);
+            onTypedAnswerSubmit(option.text);
+          }}
+        />
+      ) : exerciseKind === "audio" ? (
+        <AudioWriteExercise
+          answer={answerForExercise(exerciseKind, card, note)}
+          value={typedAnswer}
+          onChange={onTypedAnswerChange}
+          onSubmit={onTypedAnswerSubmit}
+          onPlay={onPlay}
+          note={note}
+        />
+      ) : exerciseKind === "letters" ? (
+        <LetterExercise
+          answer={answerForExercise(exerciseKind, card, note)}
+          prompt={note.back ?? ""}
+          value={typedAnswer}
+          onChange={onTypedAnswerChange}
+          onSubmit={onTypedAnswerSubmit}
+        />
+      ) : (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-7 text-center lg:px-10">
+          {isCloze ? (
+            <p className="text-2xl leading-relaxed font-bold text-ink lg:text-[32px] lg:leading-relaxed">
+              {parseCloze(note.front).map((seg, i) =>
+                seg.blank ? (
+                  <ClozeBlank key={i} hint={seg.hint} />
+                ) : (
+                  <span key={i}>{seg.text}</span>
+                ),
+              )}
+            </p>
+          ) : (
+            <p
+              className={`leading-tight font-extrabold break-words text-ink ${promptSizeCls(prompt)}`}
+            >
+              {prompt}
+            </p>
+          )}
 
-        {/* Озвучка - только для английской стороны */}
-        {card.direction !== "reverse" && (
-          <div className="flex flex-col items-center gap-4 lg:flex-row lg:gap-4">
-            <SpeakButton source={source} onPlay={onPlay} />
-            <Transcription value={note.transcription} />
-          </div>
-        )}
-      </div>
+          {/* Озвучка - только для изучаемой стороны */}
+          {card.direction !== "reverse" && (
+            <div className="flex flex-col items-center gap-4 lg:flex-row lg:gap-4">
+              <SpeakButton source={source} onPlay={onPlay} />
+              <Transcription value={note.transcription} />
+            </div>
+          )}
+        </div>
+      )}
 
       {typedAnswerEnabled && (
         <TypedAnswer
@@ -408,6 +605,8 @@ function CardBack({
   onPlay,
   onOpenDetails,
   typedAnswer,
+  exerciseKind,
+  exampleChoices,
 }: {
   card: CardRow;
   note: NoteRow;
@@ -417,9 +616,15 @@ function CardBack({
   onPlay: (source: SpeakSource) => void;
   onOpenDetails: () => void;
   typedAnswer: string | null;
+  exerciseKind: ExerciseKind;
+  exampleChoices: ChoiceOption[];
 }) {
   const source = cardSpeakSource(note, card.direction);
-  const expectedTypedAnswer = typedExpectedAnswer(card, note);
+  const expectedTypedAnswer =
+    exerciseKind === "example"
+      ? (exampleChoices.find((option) => option.correct)?.text ??
+        typedExpectedAnswer(card, note))
+      : answerForExercise(exerciseKind, card, note);
   return (
     // `inert` (а не только aria-hidden): убирает невидимую сторону и из
     // скринридера, и из поиска по странице, и из таб-порядка - иначе ответ
@@ -506,6 +711,9 @@ export function StudyCard({
   note,
   revealed,
   typedAnswerEnabled = false,
+  exerciseKind = "flashcard",
+  answerChoices = [],
+  exampleChoices = [],
   onFlip,
   onSpeak,
   onPlay,
@@ -514,6 +722,9 @@ export function StudyCard({
   note: NoteRow;
   revealed: boolean;
   typedAnswerEnabled?: boolean;
+  exerciseKind?: ExerciseKind;
+  answerChoices?: ChoiceOption[];
+  exampleChoices?: ChoiceOption[];
   onFlip: () => void;
   /** Синтез произвольного текста - для примеров. */
   onSpeak: (text: string) => void;
@@ -523,20 +734,8 @@ export function StudyCard({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [typedAnswer, setTypedAnswer] = useState("");
 
-  // Смена карточки закрывает панель: обёртка флипа перемонтируется по key,
-  // но сам StudyCard - нет, поэтому состояние сбрасываем вручную.
-  useEffect(() => {
-    setDetailsOpen(false);
-    setTypedAnswer("");
-  }, [card.id]);
-
-  // При скрытии ответа (Undo возвращает на лицо) панель тоже не должна остаться.
-  useEffect(() => {
-    if (!revealed) setDetailsOpen(false);
-  }, [revealed]);
-
-  const revealFromTypedAnswer = () => {
-    if (typedAnswer.trim().length === 0) return;
+  const revealFromTypedAnswer = (value = typedAnswer) => {
+    if (value.trim().length === 0) return;
     onFlip();
   };
 
@@ -584,6 +783,9 @@ export function StudyCard({
             hidden={revealed}
             typedAnswer={typedAnswer}
             typedAnswerEnabled={typedAnswerEnabled}
+            exerciseKind={exerciseKind}
+            answerChoices={answerChoices}
+            exampleChoices={exampleChoices}
             onTypedAnswerChange={setTypedAnswer}
             onTypedAnswerSubmit={revealFromTypedAnswer}
             onPlay={onPlay}
@@ -596,13 +798,15 @@ export function StudyCard({
             onPlay={onPlay}
             onOpenDetails={() => setDetailsOpen(true)}
             typedAnswer={typedAnswer.trim() ? typedAnswer : null}
+            exerciseKind={exerciseKind}
+            exampleChoices={exampleChoices}
           />
         </div>
 
         {/* Панель `details` - поверх карточки, вне флипа (тот повёрнут на 180°).
             Живёт на том же слое, что и обёртка появления. */}
         <AnimatePresence>
-          {detailsOpen && note.details && (
+          {detailsOpen && revealed && note.details && (
             <DetailsPanel
               markdown={note.details}
               onClose={() => setDetailsOpen(false)}

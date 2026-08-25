@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { motion } from "motion/react";
 import { useNavigate, useSearchParams } from "react-router";
 import { CloseIcon, UndoIcon } from "@/components/icons";
@@ -16,6 +16,15 @@ import { StudySetup } from "@/study/StudySetup";
 import { plural } from "@/study/format";
 import { useStudyHotkeys } from "@/study/useStudyHotkeys";
 import { useStudySession } from "@/study/useStudySession";
+import {
+  STUDY_MODE_LABEL,
+  answerForExercise,
+  choiceOptions,
+  exampleOptions,
+  mixedExerciseKind,
+  type ExerciseKind,
+  type StudyMode,
+} from "@/study/exercises";
 import { normalizeStudyLanguage } from "@/speech/languages";
 import { useSpeechContext } from "@/speech/useSpeechContext";
 
@@ -53,6 +62,10 @@ function typedAnswerTurn(cardId: string, done: number): boolean {
   return (hash + done) % 3 === 0;
 }
 
+function parseStudyMode(value: string | null): StudyMode {
+  return value === "mixed" ? "mixed" : "cards";
+}
+
 export function StudyPage() {
   const [params, setParams] = useSearchParams();
   const started = params.get("go") === "1";
@@ -62,10 +75,12 @@ export function StudyPage() {
       <StudySetup
         initialFolderId={params.get("folder")}
         initialCram={params.get("cram") === "1"}
-        onStart={({ folderIds, cram }) => {
+        initialMode={parseStudyMode(params.get("mode"))}
+        onStart={({ folderIds, cram, mode }) => {
           const next = new URLSearchParams();
           folderIds?.forEach((id) => next.append("folder", id));
           if (cram) next.set("cram", "1");
+          if (mode !== "cards") next.set("mode", mode);
           next.set("go", "1");
           setParams(next);
         }}
@@ -78,13 +93,29 @@ export function StudyPage() {
     ? { kind: "folders", folderIds }
     : { kind: "all" };
   const cram = params.get("cram") === "1";
+  const mode = parseStudyMode(params.get("mode"));
 
   // key: смена области/режима пересобирает сессию с нуля (хук читает scope
   // только при монтировании).
-  return <StudySession key={params.toString()} scope={scope} cram={cram} />;
+  return (
+    <StudySession
+      key={params.toString()}
+      scope={scope}
+      cram={cram}
+      mode={mode}
+    />
+  );
 }
 
-function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
+function StudySession({
+  scope,
+  cram,
+  mode,
+}: {
+  scope: Scope;
+  cram: boolean;
+  mode: StudyMode;
+}) {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const session = useStudySession(scope, cram);
@@ -99,6 +130,7 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
     options,
     done,
     counts,
+    notes,
   } = session;
   const { play, prefetch, autoplay } = useSpeechContext();
 
@@ -205,6 +237,42 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
     cram,
   });
 
+  const answerPool = useMemo(() => {
+    if (!current) return [];
+    return notes
+      .filter((note) => note.id !== current.note.id)
+      .map((note) =>
+        current.card.direction === "reverse" ? note.front : (note.back ?? ""),
+      )
+      .filter(Boolean);
+  }, [current, notes]);
+  const answerChoices = useMemo(() => {
+    if (!current) return [];
+    return choiceOptions({
+      correct: answerForExercise("choice", current.card, current.note),
+      pool: answerPool,
+      seed: `${current.card.id}:${done}:choice`,
+    });
+  }, [answerPool, current, done]);
+  const exampleChoices = useMemo(() => {
+    if (!current) return [];
+    return exampleOptions({
+      note: current.note,
+      allNotes: notes,
+      seed: `${current.card.id}:${done}`,
+    });
+  }, [current, notes, done]);
+  const exerciseKind: ExerciseKind =
+    mode === "mixed" && current
+      ? mixedExerciseKind({
+          cardId: current.card.id,
+          done,
+          note: current.note,
+          canChoice: answerChoices.length >= 2,
+          canExample: exampleChoices.length >= 2,
+        })
+      : "flashcard";
+
   // Спиннер, а не скелетон карточки: плейсхолдер в форме карточки на долю
   // секунды читался бы как «слово уже показали», а весь экран - ровно про то,
   // чтобы слово появилось в нужный момент.
@@ -242,7 +310,9 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
 
   const total = done + counts.total;
   const typedAnswerEnabled =
-    !revealed && typedAnswerTurn(current.card.id, done);
+    !revealed &&
+    (exerciseKind === "typed" ||
+      (exerciseKind === "flashcard" && typedAnswerTurn(current.card.id, done)));
   // Ярлык области: одна папка - её имя, несколько - счётчик, иначе «все».
   const scopeLabel =
     scope.kind === "folders"
@@ -283,7 +353,7 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
             {scopeLabel}
           </span>
           <span className="hidden text-[13px] text-faint-2 lg:inline">
-            {done} / {total}
+            {STUDY_MODE_LABEL[mode]} · {done} / {total}
           </span>
         </div>
 
@@ -320,10 +390,14 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
       {/* Карточка: на мобайле тянется, на десктопе - фиксированная и по центру */}
       <div className="flex min-h-0 flex-1 flex-col lg:items-center lg:justify-center">
         <StudyCard
+          key={`${current.card.id}:${exerciseKind}`}
           card={current.card}
           note={current.note}
           revealed={revealed}
           typedAnswerEnabled={typedAnswerEnabled}
+          exerciseKind={exerciseKind}
+          answerChoices={answerChoices}
+          exampleChoices={exampleChoices}
           onFlip={reveal}
           // Примеры - это фразы: живой записи для них не существует, поэтому
           // озвучивает облако (§6), а локальный синтез остаётся фолбэком.
