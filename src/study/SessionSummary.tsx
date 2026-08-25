@@ -1,14 +1,15 @@
-import { motion } from 'motion/react'
-import { CheckIcon } from '@/components/icons'
-import { softSpring } from '@/components/motion'
-import { formatDuration, formatInterval, plural } from '@/study/format'
-import type { QueueOutlook } from '@/data/queue'
+import { useEffect, useState } from "react";
+import { motion } from "motion/react";
+import { CheckIcon } from "@/components/icons";
+import { softSpring } from "@/components/motion";
+import { formatDuration, formatInterval, plural } from "@/study/format";
+import type { QueueOutlook } from "@/data/queue";
 
 interface SummaryStats {
-  reviewed: number
-  correct: number
-  newLearned: number
-  elapsedMs: number
+  reviewed: number;
+  correct: number;
+  newLearned: number;
+  elapsedMs: number;
 }
 
 function Tile({
@@ -16,55 +17,76 @@ function Tile({
   label,
   accent = false,
 }: {
-  value: string
-  label: string
-  accent?: boolean
+  value: string;
+  label: string;
+  accent?: boolean;
 }) {
   return (
     <div className="flex-1 rounded-2xl border border-line-soft bg-card-soft p-4">
       <div
-        className={`text-[28px] font-extrabold lg:text-[34px] ${accent ? 'text-brand-strong' : 'text-ink'}`}
+        className={`text-[28px] font-extrabold lg:text-[34px] ${accent ? "text-brand-strong" : "text-ink"}`}
       >
         {value}
       </div>
-      <div className="text-xs font-semibold text-faint-2 lg:text-[12.5px]">{label}</div>
+      <div className="text-xs font-semibold text-faint-2 lg:text-[12.5px]">
+        {label}
+      </div>
     </div>
-  )
+  );
 }
 
-/** Сколько новых добираем за одно нажатие «Учить дальше». */
-const MORE_STEP = 10
+function msUntilTomorrow(now = new Date()): number {
+  const tomorrow = new Date(now);
+  tomorrow.setHours(24, 0, 0, 0);
+  return Math.max(0, tomorrow.getTime() - now.getTime());
+}
+
+function formatCountdown(ms: number): string {
+  const totalMinutes = Math.max(1, Math.ceil(ms / 60_000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes} мин`;
+  return `${hours} ч ${minutes} мин`;
+}
 
 export function SessionSummary({
   stats,
   folderName,
   outlook,
   onHome,
-  onStudyMore,
   onCram,
 }: {
-  stats: SummaryStats
-  folderName: string | null
-  outlook: QueueOutlook
-  onHome: () => void
-  /** Добрать новых сверх дневной нормы. */
-  onStudyMore: (n: number) => void
+  stats: SummaryStats;
+  folderName: string | null;
+  outlook: QueueOutlook;
+  onHome: () => void;
   /** Прогон без расписания - когда нового не осталось, но повторить хочется. */
-  onCram: () => void
+  onCram: () => void;
 }) {
-  const accuracy = stats.reviewed > 0 ? Math.round((stats.correct / stats.reviewed) * 100) : 100
-  const nothingToDo = stats.reviewed === 0
-  const now = new Date()
+  const [resetIn, setResetIn] = useState(() => msUntilTomorrow());
+  const accuracy =
+    stats.reviewed > 0
+      ? Math.round((stats.correct / stats.reviewed) * 100)
+      : 100;
+  const nothingToDo = stats.reviewed === 0;
+  const now = new Date();
 
   // За очередью ещё стоят новые слова - значит упёрлись в дневную норму, а не
-  // выучили всё. Раньше оба случая давали одно «возвращайтесь позже», и кнопка
-  // «Учить дальше» в первом из них молча ничего не делала.
-  const cappedByLimit = outlook.newBeyondLimit > 0
-  const more = Math.min(MORE_STEP, outlook.newBeyondLimit)
+  // выучили всё. В этом состоянии кнопка не должна делать вид, что можно
+  // продолжить: лимит жёсткий, а следующий сброс - в полночь.
+  const cappedByLimit = outlook.newBeyondLimit > 0;
+
+  useEffect(() => {
+    if (!cappedByLimit) return;
+    const update = () => setResetIn(msUntilTomorrow());
+    update();
+    const timer = window.setInterval(update, 30_000);
+    return () => window.clearInterval(timer);
+  }, [cappedByLimit]);
 
   const waitHint = outlook.nextDueAt
     ? `Ближайшее повторение через ${formatInterval(outlook.nextDueAt, now)}.`
-    : null
+    : null;
 
   return (
     <div className="flex flex-1 items-center justify-center p-5">
@@ -86,20 +108,20 @@ export function SessionSummary({
         </div>
 
         <h2 className="text-[22px] font-extrabold text-ink lg:text-[28px]">
-          {nothingToDo ? 'На сегодня всё' : 'Отличная сессия!'}
+          {nothingToDo ? "На сегодня всё" : "Отличная сессия!"}
         </h2>
         <p className="mt-2 text-[15px] text-faint">
           {nothingToDo
             ? cappedByLimit
-              ? `Дневная норма новых слов выбрана. В этой папке ждут ещё ${outlook.newBeyondLimit} ${plural(outlook.newBeyondLimit, 'слово', 'слова', 'слов')}.`
-              : (waitHint ?? 'Карточек к повторению нет - возвращайтесь позже.')
+              ? `Дневная норма новых слов выбрана. В этой папке ждут ещё ${outlook.newBeyondLimit} ${plural(outlook.newBeyondLimit, "слово", "слова", "слов")}.`
+              : (waitHint ?? "Карточек к повторению нет - возвращайтесь позже.")
             : [
                 folderName,
-                `${stats.reviewed} ${plural(stats.reviewed, 'карточка', 'карточки', 'карточек')}`,
+                `${stats.reviewed} ${plural(stats.reviewed, "карточка", "карточки", "карточек")}`,
                 formatDuration(stats.elapsedMs),
               ]
                 .filter(Boolean)
-                .join(' · ')}
+                .join(" · ")}
         </p>
 
         {/* Срок ближайшего повторения - вторая строка, когда первую занял
@@ -124,19 +146,21 @@ export function SessionSummary({
           >
             На главную
           </button>
-          {/* Кнопка обязана что-то делать. Есть новые за лимитом - добираем
-              порцию; нет - предлагаем прогон без расписания. Прежняя «Учить
-              дальше» звала пересобрать очередь, которая упиралась в ту же
-              норму, и экран не менялся. */}
+          {/* Есть новые за лимитом - честно блокируем CTA и показываем, когда
+              лимит сбросится. Нет новых - можно повторить текущую область без
+              расписания. */}
           <button
             type="button"
-            onClick={() => (cappedByLimit ? onStudyMore(more) : onCram())}
-            className="flex-[1.4] cursor-pointer rounded-[14px] bg-brand px-4 py-3.5 text-[15px] font-extrabold text-white shadow-fab"
+            onClick={cappedByLimit ? undefined : onCram}
+            disabled={cappedByLimit}
+            className="flex-[1.4] cursor-pointer rounded-[14px] bg-brand px-4 py-3.5 text-[15px] font-extrabold text-white shadow-fab disabled:cursor-not-allowed disabled:bg-track disabled:text-faint-2 disabled:shadow-none"
           >
-            {cappedByLimit ? `Ещё ${more} ${plural(more, 'слово', 'слова', 'слов')}` : 'Повторить'}
+            {cappedByLimit
+              ? `Сброс лимита через ${formatCountdown(resetIn)}`
+              : "Повторить"}
           </button>
         </div>
       </motion.div>
     </div>
-  )
+  );
 }

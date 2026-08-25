@@ -227,7 +227,6 @@ function StudySession({ scope, cram }: { scope: Scope; cram: boolean }) {
         folderName={session.folderName}
         outlook={session.outlook}
         onHome={goLibrary}
-        onStudyMore={session.studyMore}
         // Прогон без расписания той же области: cram живёт в URL, а `key` на
         // сессии пересоберёт её под новый режим.
         onCram={() => {
