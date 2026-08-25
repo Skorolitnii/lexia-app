@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import type { CardRow, FolderRow, NoteRow } from "@/types";
 import { useRepo } from "@/data/useRepo";
 import { NO_FOLDER } from "@/data/queue";
-import { RepeatIcon, StudyIcon } from "@/components/icons";
+import { AddIcon, RepeatIcon, StudyIcon } from "@/components/icons";
 import { EmptyState } from "@/components/EmptyState";
 import { MobileSettingsButton } from "@/components/MobileSettingsButton";
 import { listContainer, listItem } from "@/components/motion";
@@ -167,9 +167,11 @@ export function StudySetup({
   const visibleFolderStats = folderStats.filter((s) =>
     flow === "learn" ? s.newCount > 0 : s.dueCount > 0,
   );
+  const canStart = visibleFolderStats.length > 0;
+  const startLabel = flow === "learn" ? "Начать изучение" : "Начать повторение";
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-[560px] flex-col px-5 py-7 lg:py-10">
+    <div className="relative mx-auto flex h-full w-full max-w-[560px] flex-col px-5 py-7 lg:py-10">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-[26px] font-extrabold text-ink lg:text-[30px]">
           Что учим?
@@ -227,7 +229,7 @@ export function StudySetup({
       </div>
 
       {/* Папки */}
-      <div className="mt-5 min-h-0 flex-1 overflow-y-auto">
+      <div className="mt-5 min-h-0 flex-1 overflow-y-auto pb-[142px] lg:pb-0">
         <p className="mb-2 px-1 text-[12px] font-extrabold tracking-[0.06em] text-label uppercase">
           Папки {selected.size === 0 ? "· все" : null}
         </p>
@@ -292,11 +294,32 @@ export function StudySetup({
       <button
         type="button"
         onClick={start}
-        disabled={visibleFolderStats.length === 0}
-        className="mt-5 w-full cursor-pointer rounded-[16px] bg-brand px-4 py-4 text-[15px] font-extrabold text-white shadow-fab disabled:cursor-not-allowed disabled:bg-brand-muted disabled:shadow-none"
+        disabled={!canStart}
+        className="mt-5 hidden w-full cursor-pointer rounded-[16px] bg-brand px-4 py-4 text-[15px] font-extrabold text-white shadow-fab disabled:cursor-not-allowed disabled:bg-brand-muted disabled:shadow-none lg:block"
       >
-        {flow === "learn" ? "Начать изучение" : "Начать повторение"}
+        {startLabel}
       </button>
+
+      <div className="absolute inset-x-0 bottom-0 z-20 rounded-t-[24px] border-t border-line-soft bg-card px-5 pt-4 pb-5 shadow-[0_-14px_34px_rgba(55,42,28,0.12)] lg:hidden">
+        <div className="grid grid-cols-[1.25fr_1fr] gap-2.5">
+          <button
+            type="button"
+            onClick={start}
+            disabled={!canStart}
+            className="min-h-12 cursor-pointer rounded-[15px] bg-brand px-4 py-3 text-[14.5px] font-extrabold text-white shadow-brand disabled:cursor-not-allowed disabled:bg-brand-muted disabled:shadow-none"
+          >
+            {startLabel}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSheet("note")}
+            className="flex min-h-12 cursor-pointer items-center justify-center gap-1.5 rounded-[15px] border border-brand/35 bg-brand-soft px-3 py-3 text-[14px] font-extrabold text-brand-ink transition-colors active:bg-brand-wash"
+          >
+            <AddIcon className="size-3.5" strokeWidth={2.5} />
+            Добавить
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
