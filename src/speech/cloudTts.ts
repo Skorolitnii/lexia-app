@@ -1,4 +1,6 @@
-import type { AudioRegion } from '@/types'
+import { cloudVoice, type StudyLanguage } from "@/speech/languages";
+
+export { cloudVoice } from "@/speech/languages";
 
 /**
  * Облачный синтез - ЕДИНСТВЕННЫЙ источник озвучки (§6): слова, фразы, примеры
@@ -17,23 +19,13 @@ import type { AudioRegion } from '@/types'
  * поэтому облачные файлы попадают туда сами).
  */
 
-/** Голос Azure под регион озвучки: тот же выбор US/UK, что у живой записи. */
-const VOICES: Record<AudioRegion, string> = {
-  us: 'en-US-AvaMultilingualNeural',
-  uk: 'en-GB-SoniaNeural',
-}
-
-export function cloudVoice(region: AudioRegion): string {
-  return VOICES[region]
-}
-
 /**
  * Нормализация текста перед хэшированием. Без неё «the  otter » и «the otter»
  * дали бы два разных ключа, то есть два платных синтеза одной фразы.
  * Регистр НЕ трогаем: в отличие от словарного лукапа, он влияет на интонацию.
  */
 function normalize(text: string): string {
-  return text.trim().replace(/\s+/g, ' ')
+  return text.trim().replace(/\s+/g, " ");
 }
 
 /**
@@ -56,21 +48,21 @@ function normalize(text: string): string {
  * а коллизия - это чужая озвучка вместо своей.
  */
 export function cacheKey(text: string, voice: string, rate: number): string {
-  const payload = `${normalize(text)}|${voice}|${rate.toFixed(2)}`
-  let h1 = 0x811c9dc5
-  let h2 = 0x01000193
+  const payload = `${normalize(text)}|${voice}|${rate.toFixed(2)}`;
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
   for (let i = 0; i < payload.length; i++) {
-    const c = payload.charCodeAt(i)
-    h1 = Math.imul(h1 ^ c, 0x01000193)
-    h2 = Math.imul(h2 ^ c, 0x85ebca6b)
+    const c = payload.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193);
+    h2 = Math.imul(h2 ^ c, 0x85ebca6b);
   }
-  const hex = (n: number) => (n >>> 0).toString(16).padStart(8, '0')
-  return hex(h1) + hex(h2)
+  const hex = (n: number) => (n >>> 0).toString(16).padStart(8, "0");
+  return hex(h1) + hex(h2);
 }
 
 /** Публичный URL готового mp3 в бакете `tts`. */
 export function storageUrl(baseUrl: string, key: string): string {
-  return `${baseUrl.replace(/\/$/, '')}/storage/v1/object/public/tts/${key}.mp3`
+  return `${baseUrl.replace(/\/$/, "")}/storage/v1/object/public/tts/${key}.mp3`;
 }
 
 /**
@@ -80,26 +72,26 @@ export function storageUrl(baseUrl: string, key: string): string {
  * синтез. Живёт в памяти вкладки - перезагрузка сбрасывает, и это правильно:
  * между сессиями квота могла обновиться.
  */
-let quotaBlockUntil = 0
+let quotaBlockUntil = 0;
 
 /** Пауза после исчерпания квоты. */
-const QUOTA_COOLDOWN_MS = 30 * 60 * 1000
+const QUOTA_COOLDOWN_MS = 30 * 60 * 1000;
 
 /** Сброс паузы. Нужен тестам: состояние модульное и течёт между случаями. */
 export function resetQuotaBlock(): void {
-  quotaBlockUntil = 0
+  quotaBlockUntil = 0;
 }
 
 /** Куда ходить за синтезом; `null` - облако выключено или не настроено. */
 export interface CloudConfig {
-  baseUrl: string
+  baseUrl: string;
   /**
    * JWT текущей сессии - функция проверяет именно его, а не publishable-ключ:
    * тот общий для всех и не удостоверяет пользователя. Функция, а не строка,
    * потому что токен живёт около часа и обновляется: взятый заранее протух бы
    * посреди сессии изучения. `null` - пользователь не вошёл, облако не наше.
    */
-  accessToken: () => Promise<string | null>
+  accessToken: () => Promise<string | null>;
 }
 
 /**
@@ -119,12 +111,12 @@ export interface CloudConfig {
  */
 export function cachedAudioUrl(
   text: string,
-  region: AudioRegion,
+  language: StudyLanguage,
   rate: number,
   config: CloudConfig | null,
 ): string | null {
-  if (!config || !normalize(text)) return null
-  return storageUrl(config.baseUrl, cacheKey(text, cloudVoice(region), rate))
+  if (!config || !normalize(text)) return null;
+  return storageUrl(config.baseUrl, cacheKey(text, cloudVoice(language), rate));
 }
 
 /**
@@ -134,45 +126,48 @@ export function cachedAudioUrl(
  */
 export async function synthesizeAudioUrl(
   text: string,
-  region: AudioRegion,
+  language: StudyLanguage,
   rate: number,
   config: CloudConfig | null,
   fetchImpl: typeof fetch = fetch,
 ): Promise<string | null> {
-  if (!config || !normalize(text)) return null
+  if (!config || !normalize(text)) return null;
   // Квота кончилась совсем недавно - не тратим время на заведомый отказ.
-  if (Date.now() < quotaBlockUntil) return null
+  if (Date.now() < quotaBlockUntil) return null;
 
-  const voice = cloudVoice(region)
+  const voice = cloudVoice(language);
   try {
-    const token = await config.accessToken()
-    if (!token) return null
+    const token = await config.accessToken();
+    if (!token) return null;
 
-    const made = await fetchImpl(`${config.baseUrl.replace(/\/$/, '')}/functions/v1/tts`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${token}`,
+    const made = await fetchImpl(
+      `${config.baseUrl.replace(/\/$/, "")}/functions/v1/tts`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        // `key` не шлём: функция считает его сама из тех же полей. Присланный
+        // путь означал бы управление именем объекта в бакете.
+        body: JSON.stringify({ text: normalize(text), voice, rate }),
       },
-      // `key` не шлём: функция считает его сама из тех же полей. Присланный
-      // путь означал бы управление именем объекта в бакете.
-      body: JSON.stringify({ text: normalize(text), voice, rate }),
-    })
+    );
     if (!made.ok) {
       // 429 - лимит Azure: либо запросов в секунду, либо месячная квота.
       // Различить их клиенту нечем, поэтому выдерживаем паузу в обоих
       // случаях: секундный лимит она переживёт, а месячный - не даст
       // упереться в него на каждой карточке.
-      if (made.status === 429) quotaBlockUntil = Date.now() + QUOTA_COOLDOWN_MS
-      return null
+      if (made.status === 429) quotaBlockUntil = Date.now() + QUOTA_COOLDOWN_MS;
+      return null;
     }
 
-    const body: unknown = await made.json()
-    const got = (body as { url?: unknown }).url
-    return typeof got === 'string' ? got : null
+    const body: unknown = await made.json();
+    const got = (body as { url?: unknown }).url;
+    return typeof got === "string" ? got : null;
   } catch {
     // Сеть недоступна, CORS, битый JSON - всё это не ошибка озвучки,
     // а повод озвучить локально.
-    return null
+    return null;
   }
 }

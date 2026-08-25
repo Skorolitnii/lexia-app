@@ -1,6 +1,6 @@
-import { createContext } from 'react'
-import type { Speech } from '@/speech/useSpeech'
-import type { AudioRegion } from '@/types'
+import { createContext } from "react";
+import type { Speech } from "@/speech/useSpeech";
+import type { StudyLanguage } from "@/speech/languages";
 
 /**
  * Общий экземпляр озвучки на приложение: одна подписка на `voiceschanged`
@@ -11,17 +11,17 @@ import type { AudioRegion } from '@/types'
  * с компонентом не экспортировал ничего, кроме компонентов (как `RepoContext`).
  */
 export interface SpeechContextValue extends Speech {
-  rate: number
+  rate: number;
   /** Автопроигрывать лицо карточки при показе. */
-  autoplay: boolean
-  /** Акцент синтеза: US/UK. Задаёт и голос облака, и голос устройства. */
-  audioRegion: AudioRegion
+  autoplay: boolean;
+  /** Язык синтеза. English всегда звучит как en-US. */
+  studyLanguage: StudyLanguage;
   /** Включён ли облачный синтез фраз. */
-  cloud: boolean
+  cloud: boolean;
   /** Закреплённый голос устройства или null (авто). Только для локального синтеза. */
-  voiceURI: string | null
+  voiceURI: string | null;
   /** Перечитать настройки после сохранения (Настройки → озвучка). */
-  reload: () => void
+  reload: () => void;
 }
 
-export const SpeechContext = createContext<SpeechContextValue | null>(null)
+export const SpeechContext = createContext<SpeechContextValue | null>(null);

@@ -3,21 +3,15 @@
  * (в jsdom `speechSynthesis` нет). Работает с любым объектом-как-`SpeechSynthesisVoice`.
  */
 
-/** Предпочтение региона озвучки: американский либо британский. */
-export type Accent = 'us' | 'uk'
+import { languageOption, type StudyLanguage } from "@/speech/languages";
 
 /** Минимум, который нам нужен от голоса - чтобы функцию можно было звать с моками. */
 export interface VoiceLike {
-  lang: string
-  name: string
-  voiceURI: string
-  default?: boolean
+  lang: string;
+  name: string;
+  voiceURI: string;
+  default?: boolean;
 }
-
-const ACCENT_LANG: Record<Accent, string> = { us: 'en-US', uk: 'en-GB' }
-
-/** Локали, которые показываем: ровно те, между которыми переключает UI. */
-const SPOKEN_LANGS = new Set(['en-us', 'en-gb'])
 
 /**
  * Чёрный список: Apple-голоса набора Novelty - поющие и роботические
@@ -38,59 +32,59 @@ const SPOKEN_LANGS = new Set(['en-us', 'en-gb'])
  */
 const BLOCKED_VOICE_NAMES = new Set([
   // Novelty, английские имена.
-  'albert',
-  'bad news',
-  'bahh',
-  'bells',
-  'boing',
-  'bubbles',
-  'cellos',
-  'good news',
-  'grandma',
-  'grandpa',
-  'jester',
-  'junior',
-  'organ',
-  'ralph',
-  'rocko',
-  'superstar',
-  'trinoids',
-  'whisper',
-  'wobble',
-  'zarvox',
+  "albert",
+  "bad news",
+  "bahh",
+  "bells",
+  "boing",
+  "bubbles",
+  "cellos",
+  "good news",
+  "grandma",
+  "grandpa",
+  "jester",
+  "junior",
+  "organ",
+  "ralph",
+  "rocko",
+  "superstar",
+  "trinoids",
+  "whisper",
+  "wobble",
+  "zarvox",
   // Старейшие compact-голоса macOS. Формально не novelty, но синтетичны
   // настолько, что учить по ним произношение бессмысленно.
-  'fred',
-  'kathy',
+  "fred",
+  "kathy",
   // Novelty, те же голоса под русской локалью системы.
-  'альберт',
-  'бабушка',
-  'бах',
-  'виолончель',
-  'воббл',
-  'дедушка',
-  'джуниор',
-  'зарвокс',
-  'колокольчик',
-  'орган',
-  'плохие новости',
-  'прыг-скок',
-  'пузырьки',
-  'ральф',
-  'рокко',
-  'суперзвезда',
-  'триноид',
-  'хорошие новости',
-  'шепот',
-  'шёпот',
-  'шутник',
-  'фред',
-  'кэти',
-])
+  "альберт",
+  "бабушка",
+  "бах",
+  "виолончель",
+  "воббл",
+  "дедушка",
+  "джуниор",
+  "зарвокс",
+  "колокольчик",
+  "орган",
+  "плохие новости",
+  "прыг-скок",
+  "пузырьки",
+  "ральф",
+  "рокко",
+  "суперзвезда",
+  "триноид",
+  "хорошие новости",
+  "шепот",
+  "шёпот",
+  "шутник",
+  "фред",
+  "кэти",
+]);
 
 /** Нормализуем `en_US` / `en-us` к `en-us` - ОС пишут по-разному. */
 function norm(lang: string): string {
-  return lang.toLowerCase().replace('_', '-')
+  return lang.toLowerCase().replace("_", "-");
 }
 
 /**
@@ -103,8 +97,8 @@ function norm(lang: string): string {
 function canon(name: string): string {
   return name
     .toLowerCase()
-    .replace(/\s*\(.*$/, '')
-    .trim()
+    .replace(/\s*\(.*$/, "")
+    .trim();
 }
 
 /**
@@ -118,15 +112,15 @@ function canon(name: string): string {
  * кучу compact и терялись в хвосте алфавита.
  */
 function qualityRank(name: string): number {
-  const n = name.toLowerCase()
-  if (n.startsWith('google')) return 0
-  if (n.includes('(premium)')) return 1
-  if (n.includes('(enhanced)')) return 2
-  return 3
+  const n = name.toLowerCase();
+  if (n.startsWith("google")) return 0;
+  if (n.includes("(premium)")) return 1;
+  if (n.includes("(enhanced)")) return 2;
+  return 3;
 }
 
 /**
- * Выбрать голос под акцент с деградацией: точный регион → другой английский →
+ * Выбрать голос под язык с деградацией: точная локаль → та же языковая семья →
  * любой доступный. Возврат `null` только если голосов нет вообще (список ещё
  * не загрузился) - вызывающий код тогда даёт браузеру голос по умолчанию.
  *
@@ -135,36 +129,31 @@ function qualityRank(name: string): number {
  */
 export function pickVoice(
   voices: readonly VoiceLike[],
-  accent: Accent,
+  language: StudyLanguage,
   preferredURI?: string | null,
 ): VoiceLike | null {
-  if (voices.length === 0) return null
+  if (voices.length === 0) return null;
 
   if (preferredURI) {
-    const pinned = voices.find((v) => v.voiceURI === preferredURI)
-    if (pinned) return pinned
+    const pinned = voices.find((v) => v.voiceURI === preferredURI);
+    if (pinned) return pinned;
   }
 
   // Дефолт без явного выбора - лучший из пригодных: список уже отсортирован
   // по качеству, поэтому premium-голос выигрывает у compact автоматически.
-  const allowed = allowedVoices(voices)
+  const allowed = allowedVoices(voices, language);
   if (allowed.length > 0) {
-    // Предпочитаем голос запрошенного акцента, если он есть: выбор US/UK
-    // не должен молча игнорироваться ради порядка списка.
-    const want = norm(ACCENT_LANG[accent])
-    return allowed.find((v) => norm(v.lang) === want) ?? allowed[0]
+    const want = norm(languageOption(language).locale);
+    return allowed.find((v) => norm(v.lang) === want) ?? allowed[0];
   }
 
-  // Пригодных нет вовсе (одни novelty) - деградируем к акценту.
-  const want = norm(ACCENT_LANG[accent])
-  const english = voices.filter((v) => norm(v.lang).startsWith('en'))
+  const want = norm(languageOption(language).locale);
+  const sameFamily = voices.filter(
+    (v) => norm(v.lang).split("-")[0] === want.split("-")[0],
+  );
   return (
-    english.find((v) => norm(v.lang) === want) ??
-    // Другой английский лучше неанглийского: любой англоязычный голос
-    // (пусть en-AU или en-IN) на слове понятнее французского.
-    english[0] ??
-    voices[0]
-  )
+    sameFamily.find((v) => norm(v.lang) === want) ?? sameFamily[0] ?? voices[0]
+  );
 }
 
 /**
@@ -174,50 +163,53 @@ export function pickVoice(
  * Сортировка: сначала качество (premium → enhanced → compact), внутри
  * качества - по алфавиту, чтобы порядок не прыгал между запусками.
  */
-function allowedVoices(voices: readonly VoiceLike[], anyEnglish = false): VoiceLike[] {
-  const best = new Map<string, VoiceLike>()
-  const seenURI = new Set<string>()
+function allowedVoices(
+  voices: readonly VoiceLike[],
+  language?: StudyLanguage,
+  anyLanguage = false,
+): VoiceLike[] {
+  const best = new Map<string, VoiceLike>();
+  const seenURI = new Set<string>();
+  const wanted = language ? norm(languageOption(language).locale) : null;
+  const wantedFamily = wanted?.split("-")[0];
   for (const voice of voices) {
-    const name = canon(voice.name)
-    if (BLOCKED_VOICE_NAMES.has(name)) continue
-    // Голоса Apple идут на полутора десятках языков каждый (без отсечки в
-    // список попадали японский и корейский), поэтому английский - всегда.
-    // А US/UK-сужение применяем только к автоподбору (`pickVoice`): для
-    // ручного выбора оно отрезало рабочие акценты, и на iPhone, где WebKit
-    // отдаёт лишь базовый compact-набор, оставляло два имени.
-    if (!norm(voice.lang).startsWith('en')) continue
-    if (!anyEnglish && !SPOKEN_LANGS.has(norm(voice.lang))) continue
+    const name = canon(voice.name);
+    if (BLOCKED_VOICE_NAMES.has(name)) continue;
+    const lang = norm(voice.lang);
+    if (wantedFamily && lang.split("-")[0] !== wantedFamily) continue;
+    if (wanted && !anyLanguage && lang !== wanted) continue;
     // Один и тот же голос (тот же `voiceURI`) некоторые браузеры отдают
     // несколько раз под разными языками - берём первое вхождение.
-    if (seenURI.has(voice.voiceURI)) continue
-    seenURI.add(voice.voiceURI)
+    if (seenURI.has(voice.voiceURI)) continue;
+    seenURI.add(voice.voiceURI);
     // Ключ включает язык: один и тот же голос идёт отдельными строками для
     // US и UK (`Eddy (en-GB)` / `Eddy (en-US)`) - это разные акценты, и
     // схлопывать их в одну строку значило бы отнять выбор.
-    const key = `${name}|${norm(voice.lang)}`
-    const prev = best.get(key)
+    const key = `${name}|${lang}`;
+    const prev = best.get(key);
     // Дедуп по канону: держим лучшую по качеству версию голоса.
-    if (!prev || qualityRank(voice.name) < qualityRank(prev.name)) best.set(key, voice)
+    if (!prev || qualityRank(voice.name) < qualityRank(prev.name))
+      best.set(key, voice);
   }
   return [...best.values()].sort(
     (a, b) =>
-      qualityRank(a.name) - qualityRank(b.name) || canon(a.name).localeCompare(canon(b.name)),
-  )
+      qualityRank(a.name) - qualityRank(b.name) ||
+      canon(a.name).localeCompare(canon(b.name)),
+  );
 }
 
 /** Голоса-кандидаты для автоподбора: только US/UK, кроме novelty. */
 export function englishVoices(voices: readonly VoiceLike[]): VoiceLike[] {
-  return allowedVoices(voices)
+  return allowedVoices(voices, "en");
 }
 
 /**
- * Голоса для ручного выбора в настройках: все английские устройства, включая
- * прочие локали (en-AU/en-IE/en-IN/en-ZA). Novelty по-прежнему прячем - учить
- * произношение по «Зарвоксу» нельзя.
- *
- * Шире, чем `englishVoices`: автоподбор обязан держаться US/UK, а явный выбор
- * пользователя ограничивать незачем.
+ * Голоса для ручного выбора в настройках: все голоса семейства выбранного
+ * языка. Для English это en-US/en-GB/en-AU/etc, но автоподбор держит en-US.
  */
-export function deviceVoices(voices: readonly VoiceLike[]): VoiceLike[] {
-  return allowedVoices(voices, true)
+export function deviceVoices(
+  voices: readonly VoiceLike[],
+  language: StudyLanguage = "en",
+): VoiceLike[] {
+  return allowedVoices(voices, language, true);
 }

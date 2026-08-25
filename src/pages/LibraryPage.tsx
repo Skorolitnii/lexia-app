@@ -1,56 +1,65 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { AnimatePresence } from 'motion/react'
-import { useNavigate, useSearchParams } from 'react-router'
-import type { FolderRow, NoteRow } from '@/types'
-import { SearchIcon, AddIcon, ImportIcon, PlayIcon } from '@/components/icons'
-import { EmptyState } from '@/components/EmptyState'
-import { TYPE_LABEL, selectCls } from '@/components/formStyles'
-import { useRepo } from '@/data/useRepo'
-import { FolderList } from '@/library/FolderList'
-import { FolderEditor } from '@/library/FolderEditor'
-import { LibrarySkeleton } from '@/library/LibrarySkeleton'
-import { LoadError } from '@/components/LoadError'
-import { NoteList } from '@/library/NoteList'
-import { NoteSheet } from '@/library/NoteSheet'
-import { NoteForm } from '@/library/NoteForm'
-import { dictionaryFields, draftFromNote, emptyDraft, type NoteDraft } from '@/library/draft'
-import { useLibrary, type FolderScope, type TypeFilter } from '@/library/useLibrary'
-import { useDebounced } from '@/lib/useDebounced'
-import { useSpeechContext } from '@/speech/useSpeechContext'
-import { warmAudio } from '@/supabase/functions'
-import { ImportPanel } from '@/transfer/ImportPanel'
-import { clozePlainText } from '@/study/cloze'
-import { plural } from '@/study/format'
+import { useCallback, useMemo, useRef, useState } from "react";
+import { AnimatePresence } from "motion/react";
+import { useNavigate, useSearchParams } from "react-router";
+import type { FolderRow, NoteRow } from "@/types";
+import { SearchIcon, AddIcon, ImportIcon, PlayIcon } from "@/components/icons";
+import { EmptyState } from "@/components/EmptyState";
+import { TYPE_LABEL, selectCls } from "@/components/formStyles";
+import { useRepo } from "@/data/useRepo";
+import { FolderList } from "@/library/FolderList";
+import { FolderEditor } from "@/library/FolderEditor";
+import { LibrarySkeleton } from "@/library/LibrarySkeleton";
+import { LoadError } from "@/components/LoadError";
+import { NoteList } from "@/library/NoteList";
+import { NoteSheet } from "@/library/NoteSheet";
+import { NoteForm } from "@/library/NoteForm";
+import {
+  dictionaryFields,
+  draftFromNote,
+  emptyDraft,
+  type NoteDraft,
+} from "@/library/draft";
+import {
+  useLibrary,
+  type FolderScope,
+  type TypeFilter,
+} from "@/library/useLibrary";
+import { useDebounced } from "@/lib/useDebounced";
+import { useSpeechContext } from "@/speech/useSpeechContext";
+import { warmAudio } from "@/supabase/functions";
+import { ImportPanel } from "@/transfer/ImportPanel";
+import { clozePlainText } from "@/study/cloze";
+import { plural } from "@/study/format";
 
 /** Что открыто в модалке: новая заметка или существующая. */
-type Editing = { draft: NoteDraft; note: NoteRow | null } | null
+type Editing = { draft: NoteDraft; note: NoteRow | null } | null;
 
 /**
  * URL для «Учить». Выбрана папка - заходим сразу в сессию (`go=1`); «все слова» -
  * ведём на экран выбора области (без `go`), чтобы можно было отметить несколько.
  */
 function studyUrl(scope: FolderScope): string {
-  if (scope === null) return '/study'
-  return `/study?folder=${encodeURIComponent(scope)}&go=1`
+  if (scope === null) return "/study";
+  return `/study?folder=${encodeURIComponent(scope)}&go=1`;
 }
 
 export function LibraryPage() {
-  const repo = useRepo()
-  const navigate = useNavigate()
+  const repo = useRepo();
+  const navigate = useNavigate();
 
   // Переход из зоны «Добавить» (/add → /library?new=1) сразу открывает форму.
-  const [params, setParams] = useSearchParams()
-  const openNew = params.get('new') === '1'
-  const openImport = params.get('import') === '1'
+  const [params, setParams] = useSearchParams();
+  const openNew = params.get("new") === "1";
+  const openImport = params.get("import") === "1";
 
-  const [scope, setScope] = useState<FolderScope>(null)
-  const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const [scope, setScope] = useState<FolderScope>(null);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [editing, setEditing] = useState<Editing>(
     openNew ? { draft: emptyDraft(null), note: null } : null,
-  )
-  const [saving, setSaving] = useState(false)
-  const [importing, setImporting] = useState(openImport)
+  );
+  const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(openImport);
   // Редактор папки: { folder: null } - создание, { folder } - правка.
   // `name` - заготовка имени (пришли из поиска папки в форме слова или из
   // имени папки в колоде импорта).
@@ -58,115 +67,124 @@ export function LibraryPage() {
   // просто добавить в список, а сразу выбрать в ней, иначе выбор придётся
   // повторять руками. 'note' - форма слова, 'import' - панель импорта.
   const [folderEdit, setFolderEdit] = useState<{
-    folder: FolderRow | null
-    name?: string
-    pickFor?: 'note' | 'import'
-  } | null>(null)
+    folder: FolderRow | null;
+    name?: string;
+    pickFor?: "note" | "import";
+  } | null>(null);
   // Папка, созданная из панели импорта: панель держит выбор внутри себя, и
   // это единственный способ вернуть ей только что заведённую папку.
-  const [importFolderId, setImportFolderId] = useState<string | null>(null)
-  const [savingFolder, setSavingFolder] = useState(false)
+  const [importFolderId, setImportFolderId] = useState<string | null>(null);
+  const [savingFolder, setSavingFolder] = useState(false);
   // Гейт от двойного клика. Ref, а не state: `setSaving` асинхронен, и три
   // синхронных клика (мышь может доставить их до ре-рендера) все видят `false`,
   // из-за чего создавались три папки. Ref обновляется сразу. Один на все записи -
   // в момент времени открыта только одна модалка. State-флаги остаются для UI.
-  const writing = useRef(false)
+  const writing = useRef(false);
 
   /**
    * Подстановка из словаря. Ссылка стабильна (useCallback): форма держит её
    * в зависимостях эффекта, и меняющийся коллбэк дёргал бы подстановку заново.
    */
-  const applyToDraft = useCallback((update: (current: NoteDraft) => NoteDraft) => {
-    setEditing((prev) => (prev ? { ...prev, draft: update(prev.draft) } : prev))
-  }, [])
+  const applyToDraft = useCallback(
+    (update: (current: NoteDraft) => NoteDraft) => {
+      setEditing((prev) =>
+        prev ? { ...prev, draft: update(prev.draft) } : prev,
+      );
+    },
+    [],
+  );
 
   /** Закрыть форму и убрать ?new=1, иначе она откроется снова при ререндере. */
   const closeSheet = () => {
-    setEditing(null)
-    if (openNew) setParams({}, { replace: true })
-  }
+    setEditing(null);
+    if (openNew) setParams({}, { replace: true });
+  };
 
   /** Закрыть импорт и убрать ?import=1 (пришли из онбординга /study). */
   const closeImport = () => {
-    setImporting(false)
-    if (openImport) setParams({}, { replace: true })
-  }
+    setImporting(false);
+    if (openImport) setParams({}, { replace: true });
+  };
 
   // Поле поиска обновляется мгновенно, а запрос к списку - с задержкой: без
   // debounce каждая буква била бы новой постраничной выборкой на сервер.
-  const debouncedSearch = useDebounced(search.trim(), 350)
-  const lib = useLibrary(scope, debouncedSearch, typeFilter)
-  // Регион и скорость нужны прогреву: сервер синтезирует тем же голосом и с
+  const debouncedSearch = useDebounced(search.trim(), 350);
+  const lib = useLibrary(scope, debouncedSearch, typeFilter);
+  // Язык и скорость нужны прогреву: сервер синтезирует тем же голосом и с
   // тем же ключом кэша, что попросит клиент при показе карточки.
-  const { audioRegion, rate } = useSpeechContext()
+  const { studyLanguage, rate } = useSpeechContext();
 
   const folderRows = useMemo(
     () => lib.folders.flatMap((f) => (f.folder ? [f.folder] : [])),
     [lib.folders],
-  )
-  const currentFolder = lib.folders.find((f) => (f.folder?.id ?? null) === scope)
+  );
+  const currentFolder = lib.folders.find(
+    (f) => (f.folder?.id ?? null) === scope,
+  );
 
   const saveFolder = async (patch: { name: string; color: string | null }) => {
-    if (!folderEdit || writing.current) return
-    writing.current = true
-    setSavingFolder(true)
+    if (!folderEdit || writing.current) return;
+    writing.current = true;
+    setSavingFolder(true);
     try {
       if (folderEdit.folder) {
-        await repo.updateFolder(folderEdit.folder.id, patch)
+        await repo.updateFolder(folderEdit.folder.id, patch);
       } else {
         const created = await repo.createFolder({
           id: crypto.randomUUID(),
           name: patch.name,
           color: patch.color,
           position: folderRows.length,
-        })
+        });
         // Папку заводили поверх другой формы - сразу её там и выбираем.
-        if (folderEdit.pickFor === 'note') {
+        if (folderEdit.pickFor === "note") {
           setEditing((prev) =>
-            prev ? { ...prev, draft: { ...prev.draft, folder_id: created.id } } : prev,
-          )
-        } else if (folderEdit.pickFor === 'import') {
+            prev
+              ? { ...prev, draft: { ...prev.draft, folder_id: created.id } }
+              : prev,
+          );
+        } else if (folderEdit.pickFor === "import") {
           // Панель импорта держит выбор внутри себя - передаём id внутрь
           // пропом, иначе созданную папку пришлось бы выбирать руками.
-          setImportFolderId(created.id)
+          setImportFolderId(created.id);
         }
       }
       // Папку завели поверх другой формы - слова не менялись, и перечитывать
       // их список незачем: полный `reload` сбросил бы его на первую страницу,
       // и всё под модалкой мигнуло бы.
-      setFolderEdit(null)
-      if (folderEdit.pickFor) lib.reloadFolders()
-      else lib.reload()
+      setFolderEdit(null);
+      if (folderEdit.pickFor) lib.reloadFolders();
+      else lib.reload();
     } finally {
-      writing.current = false
-      setSavingFolder(false)
+      writing.current = false;
+      setSavingFolder(false);
     }
-  }
+  };
 
   // Подтверждение удаления - инлайн в самом `FolderEditor` (Да/Нет), поэтому
   // здесь никакого `window.confirm`: иначе подтверждать пришлось бы дважды.
   const removeFolder = async (withNotes: boolean) => {
-    if (!folderEdit?.folder || writing.current) return
-    writing.current = true
-    setSavingFolder(true)
+    if (!folderEdit?.folder || writing.current) return;
+    writing.current = true;
+    setSavingFolder(true);
     try {
-      const id = folderEdit.folder.id
-      await repo.deleteFolder(id, withNotes)
+      const id = folderEdit.folder.id;
+      await repo.deleteFolder(id, withNotes);
       // Если удалили открытую папку - вернуться к «Все слова».
-      if (scope === id) setScope(null)
-      setFolderEdit(null)
-      lib.reload()
+      if (scope === id) setScope(null);
+      setFolderEdit(null);
+      lib.reload();
     } finally {
-      writing.current = false
-      setSavingFolder(false)
+      writing.current = false;
+      setSavingFolder(false);
     }
-  }
+  };
 
   const save = async () => {
-    if (!editing || writing.current) return
-    writing.current = true
-    setSaving(true)
-    const { draft, note } = editing
+    if (!editing || writing.current) return;
+    writing.current = true;
+    setSaving(true);
+    const { draft, note } = editing;
     try {
       // Папка к этому моменту уже существует: новую заводит отдельное окно
       // (`FolderEditor` поверх формы), а не сохранение заметки.
@@ -183,16 +201,16 @@ export function LibraryPage() {
         // лукапа нет, и без этой проверки сохранялись бы данные прежнего слова.
         ...dictionaryFields(draft),
         // У cloze обратной карточки не бывает (§3) - не даём ей просочиться.
-        reverse: draft.type === 'cloze' ? false : draft.reverse,
-      }
+        reverse: draft.type === "cloze" ? false : draft.reverse,
+      };
       if (note) {
-        await repo.updateNote(note.id, payload)
+        await repo.updateNote(note.id, payload);
       } else {
         await repo.createNote({
           id: crypto.randomUUID(),
           image_url: null,
           ...payload,
-        })
+        });
       }
       // Прогрев озвучки: синтез идёт секунды, и без него первый показ карточки
       // встречал бы лоадером. Ответа не ждём и осечку глотаем - при промахе
@@ -200,36 +218,38 @@ export function LibraryPage() {
       // у изменённого слова или нового примера озвучки ещё нет.
       warmAudio(
         [
-          payload.type === 'cloze' ? clozePlainText(payload.front) : payload.front,
+          payload.type === "cloze"
+            ? clozePlainText(payload.front)
+            : payload.front,
           ...payload.examples.map((e) => e.text),
         ],
-        audioRegion,
+        studyLanguage,
         rate,
-      )
-      closeSheet()
-      lib.reload()
+      );
+      closeSheet();
+      lib.reload();
     } finally {
       // Без finally падение IndexedDB оставило бы форму навсегда в «…».
-      writing.current = false
-      setSaving(false)
+      writing.current = false;
+      setSaving(false);
     }
-  }
+  };
 
   // Подтверждение удаления - инлайн в самой `NoteForm` (Да/Нет), поэтому здесь
   // никакого `window.confirm`: иначе подтверждать пришлось бы дважды.
   const remove = async () => {
-    if (!editing?.note || writing.current) return
-    writing.current = true
+    if (!editing?.note || writing.current) return;
+    writing.current = true;
     try {
-      await repo.deleteNote(editing.note.id)
-      closeSheet()
-      lib.reload()
+      await repo.deleteNote(editing.note.id);
+      closeSheet();
+      lib.reload();
     } finally {
-      writing.current = false
+      writing.current = false;
     }
-  }
+  };
 
-  if (lib.loading) return <LibrarySkeleton />
+  if (lib.loading) return <LibrarySkeleton />;
 
   // Чтение не удалось - предлагаем повтор. Показывать при этом пустой список
   // нельзя: «слов нет» и «слова не загрузились» - разные вещи, а действия
@@ -239,13 +259,13 @@ export function LibraryPage() {
       <div className="flex h-full flex-col p-5 lg:p-8">
         <LoadError what="слова" onRetry={lib.reload} />
       </div>
-    )
+    );
   }
 
-  const title = currentFolder?.folder?.name ?? 'Все слова'
+  const title = currentFolder?.folder?.name ?? "Все слова";
   // Совсем пустой аккаунт: ни одного слова во всех папках. Показываем онбординг
   // вместо поиска/фильтров/пустого списка (искать нечего, папок тоже нет).
-  const emptyAccount = lib.totalNotes === 0
+  const emptyAccount = lib.totalNotes === 0;
 
   return (
     <div className="flex h-full">
@@ -264,7 +284,7 @@ export function LibraryPage() {
 
       <div
         className={`flex min-w-0 flex-1 flex-col overflow-y-auto ${
-          emptyAccount ? '' : 'px-5 py-6 lg:px-7'
+          emptyAccount ? "" : "px-5 py-6 lg:px-7"
         }`}
       >
         {/* Заголовок + действия. flex-wrap: держим в одну строку, пока влезает;
@@ -284,7 +304,8 @@ export function LibraryPage() {
                 <span className="hidden lg:inline">{title}</span>
               </h1>
               <span className="hidden shrink-0 text-[14px] text-faint-2 lg:inline">
-                {lib.totalInFolder} {plural(lib.totalInFolder, 'слово', 'слова', 'слов')}
+                {lib.totalInFolder}{" "}
+                {plural(lib.totalInFolder, "слово", "слова", "слов")}
               </span>
             </div>
 
@@ -301,7 +322,9 @@ export function LibraryPage() {
               )}
               <button
                 type="button"
-                onClick={() => setEditing({ draft: emptyDraft(scope), note: null })}
+                onClick={() =>
+                  setEditing({ draft: emptyDraft(scope), note: null })
+                }
                 className="flex cursor-pointer items-center gap-1.5 rounded-[11px] border border-brand/35 bg-brand-soft px-3.5 py-2 text-[13.5px] font-bold text-brand-ink transition-colors hover:border-brand/60 hover:bg-brand-wash"
               >
                 <AddIcon className="size-3.5" strokeWidth={2.5} />
@@ -323,7 +346,9 @@ export function LibraryPage() {
           <EmptyState
             title="Соберите первую колоду"
             description="Достаточно 10 слов, чтобы запустить интервальные повторения."
-            onAddWord={() => setEditing({ draft: emptyDraft(null), note: null })}
+            onAddWord={() =>
+              setEditing({ draft: emptyDraft(null), note: null })
+            }
             onImport={() => setImporting(true)}
             onInstalled={lib.reload}
           />
@@ -373,7 +398,9 @@ export function LibraryPage() {
               hasMore={lib.hasMore}
               loadingMore={lib.loadingMore}
               onLoadMore={lib.loadMore}
-              onOpen={(item) => setEditing({ draft: draftFromNote(item.note), note: item.note })}
+              onOpen={(item) =>
+                setEditing({ draft: draftFromNote(item.note), note: item.note })
+              }
             />
           </>
         )}
@@ -387,7 +414,9 @@ export function LibraryPage() {
               onClose={closeImport}
               onImported={lib.reload}
               pickedFolderId={importFolderId}
-              onCreateFolder={(name) => setFolderEdit({ folder: null, name, pickFor: 'import' })}
+              onCreateFolder={(name) =>
+                setFolderEdit({ folder: null, name, pickFor: "import" })
+              }
             />
           </NoteSheet>
         )}
@@ -404,7 +433,9 @@ export function LibraryPage() {
               onApply={applyToDraft}
               onSubmit={() => void save()}
               onCancel={closeSheet}
-              onCreateFolder={(name) => setFolderEdit({ folder: null, name, pickFor: 'note' })}
+              onCreateFolder={(name) =>
+                setFolderEdit({ folder: null, name, pickFor: "note" })
+              }
               onDelete={editing.note ? () => void remove() : undefined}
             />
           </NoteSheet>
@@ -421,18 +452,23 @@ export function LibraryPage() {
               initialName={folderEdit.name}
               noteCount={
                 folderEdit.folder
-                  ? (lib.folders.find((f) => f.folder?.id === folderEdit.folder!.id)?.noteCount ??
-                    0)
+                  ? (lib.folders.find(
+                      (f) => f.folder?.id === folderEdit.folder!.id,
+                    )?.noteCount ?? 0)
                   : 0
               }
               saving={savingFolder}
               onSave={(patch) => void saveFolder(patch)}
-              onDelete={folderEdit.folder ? (withNotes) => void removeFolder(withNotes) : undefined}
+              onDelete={
+                folderEdit.folder
+                  ? (withNotes) => void removeFolder(withNotes)
+                  : undefined
+              }
               onCancel={() => setFolderEdit(null)}
             />
           </NoteSheet>
         )}
       </AnimatePresence>
     </div>
-  )
+  );
 }
