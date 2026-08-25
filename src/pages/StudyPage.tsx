@@ -149,6 +149,46 @@ function StudySession({
   const cardId = current?.card.id;
   const direction = current?.card.direction;
   const front = current?.note.front;
+  const studyLanguage = current?.note.study_language;
+  const answerPool = useMemo(() => {
+    if (!current) return [];
+    return notes
+      .filter((note) => note.id !== current.note.id)
+      .map((note) =>
+        current.card.direction === "reverse" ? note.front : (note.back ?? ""),
+      )
+      .filter(Boolean);
+  }, [current, notes]);
+  const answerChoices = useMemo(() => {
+    if (!current) return [];
+    return choiceOptions({
+      correct: answerForExercise("choice", current.card, current.note),
+      pool: answerPool,
+      seed: `${current.card.id}:${done}:choice`,
+    });
+  }, [answerPool, current, done]);
+  const exampleChoices = useMemo(() => {
+    if (!current) return [];
+    return exampleOptions({
+      note: current.note,
+      allNotes: notes,
+      seed: `${current.card.id}:${done}`,
+    });
+  }, [current, notes, done]);
+  const exerciseKind: ExerciseKind =
+    mode === "mixed" && current
+      ? mixedExerciseKind({
+          cardId: current.card.id,
+          done,
+          note: current.note,
+          canChoice: answerChoices.length >= 2,
+          canExample: exampleChoices.length >= 2,
+        })
+      : "flashcard";
+  const audioExerciseText =
+    current && exerciseKind === "audio"
+      ? answerForExercise("audio", current.card, current.note)
+      : null;
   // Озвучка идёт тем же путём, что и кнопка на карточке: единственный источник -
   // облако (§6). `autoplayText` решает, КОГДА играть, `cardSpeakSource` - ЧЕМ.
 
@@ -157,6 +197,7 @@ function StudySession({
   // у cloze - предложение с пропусками (озвучка выдала бы ответ), поэтому там null.
   // Зависимость по `card.id`: озвучиваем при СМЕНЕ карточки, а не на reveal/undo.
   useEffect(() => {
+    if (exerciseKind === "audio") return;
     if (!front) return;
     const text = autoplayText({ autoplay, direction, front, revealed: false });
     // `gesture: false` - это не клик: при промахе облачного кэша лучше
@@ -166,12 +207,27 @@ function StudySession({
         {
           url: null,
           text,
-          language: normalizeStudyLanguage(current?.note.study_language),
+          language: normalizeStudyLanguage(studyLanguage),
           cloud: true,
         },
         { gesture: false },
       );
-  }, [cardId, direction, front, autoplay, play]);
+  }, [cardId, direction, front, autoplay, play, exerciseKind, studyLanguage]);
+
+  // В mixed-задании «на слух» звук - сам prompt, поэтому он должен запускаться
+  // всегда, независимо от пользовательской настройки обычного автоплея карточек.
+  useEffect(() => {
+    if (!audioExerciseText || revealed) return;
+    play(
+      {
+        url: null,
+        text: audioExerciseText,
+        language: normalizeStudyLanguage(studyLanguage),
+        cloud: true,
+      },
+      { gesture: false },
+    );
+  }, [audioExerciseText, cardId, play, revealed, studyLanguage]);
 
   // Автоплей оборота: играем то, что `autoplayText` разрешает для ОБОРОТА
   // (revealed:true) - это reverse (EN-слово появляется на обороте) и cloze
@@ -185,12 +241,12 @@ function StudySession({
         {
           url: null,
           text,
-          language: normalizeStudyLanguage(current?.note.study_language),
+          language: normalizeStudyLanguage(studyLanguage),
           cloud: true,
         },
         { gesture: false },
       );
-  }, [cardId, direction, front, autoplay, revealed, play]);
+  }, [cardId, direction, front, autoplay, revealed, play, studyLanguage]);
 
   // Прогрев озвучки следующей карточки, пока пользователь смотрит текущую.
   // Синтез в облаке занимает секунды, и без этого каждая новая фраза
@@ -236,42 +292,6 @@ function StudySession({
     enabled: !!current,
     cram,
   });
-
-  const answerPool = useMemo(() => {
-    if (!current) return [];
-    return notes
-      .filter((note) => note.id !== current.note.id)
-      .map((note) =>
-        current.card.direction === "reverse" ? note.front : (note.back ?? ""),
-      )
-      .filter(Boolean);
-  }, [current, notes]);
-  const answerChoices = useMemo(() => {
-    if (!current) return [];
-    return choiceOptions({
-      correct: answerForExercise("choice", current.card, current.note),
-      pool: answerPool,
-      seed: `${current.card.id}:${done}:choice`,
-    });
-  }, [answerPool, current, done]);
-  const exampleChoices = useMemo(() => {
-    if (!current) return [];
-    return exampleOptions({
-      note: current.note,
-      allNotes: notes,
-      seed: `${current.card.id}:${done}`,
-    });
-  }, [current, notes, done]);
-  const exerciseKind: ExerciseKind =
-    mode === "mixed" && current
-      ? mixedExerciseKind({
-          cardId: current.card.id,
-          done,
-          note: current.note,
-          canChoice: answerChoices.length >= 2,
-          canExample: exampleChoices.length >= 2,
-        })
-      : "flashcard";
 
   // Спиннер, а не скелетон карточки: плейсхолдер в форме карточки на долю
   // секунды читался бы как «слово уже показали», а весь экран - ровно про то,

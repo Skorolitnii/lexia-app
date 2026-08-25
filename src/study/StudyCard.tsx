@@ -381,7 +381,6 @@ function AudioWriteExercise({
   };
   return (
     <div className="flex w-full flex-1 flex-col items-center justify-center gap-5 px-6 text-center lg:px-10">
-      <ExerciseHint>На слух</ExerciseHint>
       <SpeakButton source={source} onPlay={onPlay} />
       <p className="text-[15px] font-semibold text-faint">
         Прослушайте и напишите слово
