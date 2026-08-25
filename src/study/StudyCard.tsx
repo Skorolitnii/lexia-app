@@ -313,14 +313,6 @@ function TypedAnswer({
   );
 }
 
-function ExerciseHint({ children }: { children: string }) {
-  return (
-    <div className="rounded-pill bg-brand-soft px-3 py-1.5 text-[11px] font-extrabold tracking-[0.05em] text-brand-ink uppercase">
-      {children}
-    </div>
-  );
-}
-
 function ChoiceExercise({
   prompt,
   options,
@@ -410,7 +402,6 @@ function LetterExercise({
   return (
     <div className="flex w-full flex-1 flex-col justify-center gap-5 px-6 text-center lg:px-10">
       <div>
-        <ExerciseHint>Соберите слово</ExerciseHint>
         {prompt && (
           <p className="mt-4 text-[18px] font-bold text-ink">{prompt}</p>
         )}
