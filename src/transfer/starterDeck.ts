@@ -1,258 +1,593 @@
-/**
- * Стартовая колода для пустого аккаунта («Пустой экран v2»).
- *
- * Держим её в том же формате, что и файл от нейросети (§4), и прогоняем через
- * тот же `parseDeck` + обогащение из словаря: у стартовой колоды нет своего,
- * второго пути импорта, который мог бы разойтись с основным. Транскрипции и
- * аудио здесь намеренно нет - их дотянет словарь, как и для любой колоды.
- *
- * Размер сознательно небольшой: это витрина формата и первый заход в
- * повторения, а не «топ-1000». Слова - бытовой минимум с примерами.
- */
-export const STARTER_DECK_TITLE = 'Первые слова'
-export const STARTER_DECK_SIZE = 30
+import type { StudyLanguage } from "@/speech/languages";
 
-export const STARTER_DECK_JSON = JSON.stringify({
-  version: 1,
-  folder: STARTER_DECK_TITLE,
-  notes: [
-    {
-      type: 'basic',
-      front: 'morning',
-      back: 'утро',
-      reverse: true,
-      examples: [
-        { text: 'I read the news every morning.', translation: 'Я читаю новости каждое утро.' },
-      ],
-    },
-    {
-      type: 'basic',
-      front: 'kitchen',
-      back: 'кухня',
-      reverse: true,
-      examples: [{ text: 'She is cooking in the kitchen.', translation: 'Она готовит на кухне.' }],
-    },
-    {
-      type: 'basic',
-      front: 'window',
-      back: 'окно',
-      reverse: true,
-      examples: [{ text: 'Please close the window.', translation: 'Пожалуйста, закрой окно.' }],
-    },
-    {
-      type: 'basic',
-      front: 'bread',
-      back: 'хлеб',
-      reverse: true,
-      examples: [{ text: 'We bought fresh bread.', translation: 'Мы купили свежий хлеб.' }],
-    },
-    {
-      type: 'basic',
-      front: 'water',
-      back: 'вода',
-      reverse: true,
-      examples: [{ text: 'Can I have a glass of water?', translation: 'Можно мне стакан воды?' }],
-    },
-    {
-      type: 'basic',
-      front: 'street',
-      back: 'улица',
-      reverse: true,
-      examples: [
-        { text: 'They live on a quiet street.', translation: 'Они живут на тихой улице.' },
-      ],
-    },
-    {
-      type: 'basic',
-      front: 'friend',
-      back: 'друг',
-      reverse: true,
-      examples: [
-        { text: 'My friend works at a hospital.', translation: 'Мой друг работает в больнице.' },
-      ],
-    },
-    {
-      type: 'basic',
-      front: 'work',
-      back: 'работа; работать',
-      reverse: true,
-      examples: [{ text: 'I go to work by bus.', translation: 'Я езжу на работу на автобусе.' }],
-      details:
-        '**Часть речи:** существительное и глагол.\n\nВ значении «работа» - неисчисляемое: не *a work*, а *work* или *a job*.',
-    },
-    {
-      type: 'basic',
-      front: 'money',
-      back: 'деньги',
-      reverse: true,
-      examples: [
-        { text: 'He saved money for a trip.', translation: 'Он копил деньги на поездку.' },
-      ],
-      details:
-        '**Нюанс:** неисчисляемое, глагол в единственном числе - *money is*, не *money are*.',
-    },
-    {
-      type: 'basic',
-      front: 'week',
-      back: 'неделя',
-      reverse: true,
-      examples: [{ text: 'See you next week.', translation: 'Увидимся на следующей неделе.' }],
-    },
-    {
-      type: 'basic',
-      front: 'answer',
-      back: 'ответ; отвечать',
-      reverse: true,
-      examples: [{ text: 'Nobody knew the answer.', translation: 'Никто не знал ответа.' }],
-    },
-    {
-      type: 'basic',
-      front: 'question',
-      back: 'вопрос',
-      reverse: true,
-      examples: [{ text: 'May I ask a question?', translation: 'Можно задать вопрос?' }],
-    },
-    {
-      type: 'basic',
-      front: 'people',
-      back: 'люди',
-      reverse: true,
-      examples: [
-        { text: 'Many people came to the concert.', translation: 'На концерт пришло много людей.' },
-      ],
-      details:
-        '**Нюанс:** множественное число от *person*. Форма *persons* встречается только в официальных и юридических текстах.',
-    },
-    {
-      type: 'basic',
-      front: 'child',
-      back: 'ребёнок',
-      reverse: true,
-      examples: [{ text: 'The child is asleep.', translation: 'Ребёнок спит.' }],
-      details: '**Нюанс:** неправильное множественное - *children*, не *childs*.',
-    },
-    {
-      type: 'basic',
-      front: 'city',
-      back: 'город',
-      reverse: true,
-      examples: [
-        { text: 'Lisbon is a beautiful city.', translation: 'Лиссабон - красивый город.' },
-      ],
-    },
-    {
-      type: 'basic',
-      front: 'country',
-      back: 'страна; сельская местность',
-      reverse: true,
-      examples: [{ text: 'Which country are you from?', translation: 'Из какой ты страны?' }],
-    },
-    {
-      type: 'basic',
-      front: 'language',
-      back: 'язык',
-      reverse: true,
-      examples: [
-        { text: 'English is not an easy language.', translation: 'Английский - непростой язык.' },
-      ],
-    },
-    {
-      type: 'basic',
-      front: 'book',
-      back: 'книга',
-      reverse: true,
-      examples: [
-        { text: 'This book changed my mind.', translation: 'Эта книга изменила моё мнение.' },
-      ],
-    },
-    {
-      type: 'basic',
-      front: 'learn',
-      back: 'учить, узнавать',
-      reverse: true,
-      examples: [
-        { text: 'Children learn very quickly.', translation: 'Дети учатся очень быстро.' },
-      ],
-      details: '**Не путать:** *learn* - усваивать самому, *teach* - учить кого-то другого.',
-    },
-    {
-      type: 'basic',
-      front: 'remember',
-      back: 'помнить, вспоминать',
-      reverse: true,
-      examples: [{ text: "I don't remember his name.", translation: 'Я не помню его имени.' }],
-    },
-    {
-      type: 'basic',
-      front: 'buy',
-      back: 'покупать',
-      reverse: true,
-      examples: [{ text: 'She wants to buy a bike.', translation: 'Она хочет купить велосипед.' }],
-      details: '**Формы:** buy - bought - bought.',
-    },
-    {
-      type: 'basic',
-      front: 'understand',
-      back: 'понимать',
-      reverse: true,
-      examples: [{ text: 'I understand you perfectly.', translation: 'Я прекрасно вас понимаю.' }],
-      details: '**Формы:** understand - understood - understood.',
-    },
-    {
-      type: 'basic',
-      front: 'important',
-      back: 'важный',
-      reverse: true,
-      examples: [{ text: 'This is an important decision.', translation: 'Это важное решение.' }],
-    },
-    {
-      type: 'basic',
-      front: 'difficult',
-      back: 'трудный, сложный',
-      reverse: true,
-      examples: [{ text: 'The test was difficult.', translation: 'Тест был трудным.' }],
-    },
-    {
-      type: 'basic',
-      front: 'early',
-      back: 'рано; ранний',
-      reverse: true,
-      examples: [{ text: 'We left early in the morning.', translation: 'Мы уехали рано утром.' }],
-    },
-    {
-      type: 'basic',
-      front: 'enough',
-      back: 'достаточно',
-      reverse: true,
-      examples: [{ text: 'We have enough time.', translation: 'У нас достаточно времени.' }],
-      details:
-        '**Порядок слов:** после прилагательного - *good enough*, но перед существительным - *enough time*.',
-    },
-    {
-      type: 'basic',
-      front: 'always',
-      back: 'всегда',
-      reverse: true,
-      examples: [{ text: 'He is always late.', translation: 'Он всегда опаздывает.' }],
-    },
-    {
-      type: 'basic',
-      front: 'maybe',
-      back: 'может быть',
-      reverse: true,
-      examples: [
-        { text: 'Maybe we should wait.', translation: 'Может быть, нам стоит подождать.' },
-      ],
-    },
-    {
-      type: 'cloze',
-      front: 'I usually {{wake up::просыпаюсь}} at seven.',
-      back: 'Обычно я просыпаюсь в семь.',
-    },
-    {
-      type: 'cloze',
-      front: 'She has been {{waiting::ждёт}} for an hour.',
-      back: 'Она ждёт уже час.',
-    },
-  ],
-})
+/**
+ * Стартовые колоды для пустого аккаунта.
+ *
+ * Держим их в том же формате, что и файл от нейросети (§4), и прогоняем через
+ * тот же `parseDeck`: стартовый импорт не должен иметь отдельную схему.
+ */
+export const STARTER_DECK_SIZE = 100;
+
+export interface StarterDeckPreset {
+  id: StudyLanguage;
+  language: StudyLanguage;
+  title: string;
+  languageName: string;
+}
+
+export const STARTER_DECK_PRESETS: readonly StarterDeckPreset[] = [
+  {
+    id: "en",
+    language: "en",
+    title: "100 главных слов",
+    languageName: "English",
+  },
+  {
+    id: "de",
+    language: "de",
+    title: "100 главных слов",
+    languageName: "Deutsch",
+  },
+  {
+    id: "it",
+    language: "it",
+    title: "100 главных слов",
+    languageName: "Italiano",
+  },
+  {
+    id: "fr",
+    language: "fr",
+    title: "100 главных слов",
+    languageName: "Français",
+  },
+  {
+    id: "es",
+    language: "es",
+    title: "100 главных слов",
+    languageName: "Español",
+  },
+];
+
+export const STARTER_DECK_TITLE = STARTER_DECK_PRESETS[0]!.title;
+
+const WORDS: Record<StudyLanguage, string> = {
+  en: `
+morning=утро
+evening=вечер
+night=ночь
+day=день
+week=неделя
+year=год
+time=время
+today=сегодня
+tomorrow=завтра
+yesterday=вчера
+home=дом
+room=комната
+kitchen=кухня
+window=окно
+door=дверь
+street=улица
+city=город
+country=страна
+water=вода
+bread=хлеб
+food=еда
+coffee=кофе
+tea=чай
+money=деньги
+work=работа; работать
+school=школа
+book=книга
+phone=телефон
+car=машина
+train=поезд
+friend=друг
+family=семья
+child=ребёнок
+people=люди
+person=человек
+name=имя
+question=вопрос
+answer=ответ; отвечать
+word=слово
+language=язык
+help=помощь; помогать
+problem=проблема
+idea=идея
+thing=вещь
+place=место
+way=путь; способ
+life=жизнь
+love=любовь; любить
+hand=рука
+eye=глаз
+head=голова
+small=маленький
+big=большой
+good=хороший
+bad=плохой
+new=новый
+old=старый
+early=рано; ранний
+late=поздно; поздний
+important=важный
+difficult=трудный
+easy=лёгкий
+right=правильный; правый
+left=левый
+near=рядом
+far=далеко
+hot=горячий
+cold=холодный
+beautiful=красивый
+happy=счастливый
+tired=уставший
+to be=быть
+to have=иметь
+to do=делать
+to go=идти; ехать
+to come=приходить
+to see=видеть
+to say=сказать
+to know=знать
+to think=думать
+to want=хотеть
+to need=нуждаться
+to like=нравиться
+to learn=учить
+to remember=помнить
+to understand=понимать
+to buy=покупать
+to eat=есть
+to drink=пить
+to sleep=спать
+always=всегда
+often=часто
+sometimes=иногда
+never=никогда
+here=здесь
+there=там
+now=сейчас
+maybe=может быть
+very=очень
+enough=достаточно
+`,
+  de: `
+der Morgen=утро
+Abend=вечер
+Nacht=ночь
+Tag=день
+Woche=неделя
+Jahr=год
+Zeit=время
+heute=сегодня
+morgen=завтра
+gestern=вчера
+Haus=дом
+Zimmer=комната
+Küche=кухня
+Fenster=окно
+Tür=дверь
+Straße=улица
+Stadt=город
+Land=страна
+Wasser=вода
+Brot=хлеб
+das Essen=еда
+Kaffee=кофе
+Tee=чай
+Geld=деньги
+Arbeit=работа
+Schule=школа
+Buch=книга
+Telefon=телефон
+Auto=машина
+Zug=поезд
+Freund=друг
+Familie=семья
+Kind=ребёнок
+Leute=люди
+Name=имя
+Frage=вопрос
+Antwort=ответ
+Wort=слово
+Sprache=язык
+Hilfe=помощь
+Problem=проблема
+Idee=идея
+Ding=вещь
+Ort=место
+Weg=путь; способ
+Leben=жизнь
+Liebe=любовь
+Hand=рука
+Auge=глаз
+Kopf=голова
+klein=маленький
+groß=большой
+gut=хороший
+schlecht=плохой
+neu=новый
+alt=старый
+früh=рано; ранний
+spät=поздно; поздний
+wichtig=важный
+schwierig=трудный
+einfach=лёгкий
+richtig=правильный
+links=слева
+rechts=справа
+nah=рядом
+weit=далеко
+heiß=горячий
+kalt=холодный
+schön=красивый
+glücklich=счастливый
+müde=уставший
+sein=быть
+haben=иметь
+machen=делать
+gehen=идти
+kommen=приходить
+sehen=видеть
+sagen=сказать
+wissen=знать
+denken=думать
+wollen=хотеть
+brauchen=нуждаться
+mögen=нравиться
+lernen=учить
+sich erinnern=помнить
+verstehen=понимать
+kaufen=покупать
+essen=есть
+trinken=пить
+schlafen=спать
+immer=всегда
+oft=часто
+manchmal=иногда
+nie=никогда
+hier=здесь
+dort=там
+jetzt=сейчас
+vielleicht=может быть
+sehr=очень
+genug=достаточно
+`,
+  it: `
+mattina=утро
+sera=вечер
+notte=ночь
+giorno=день
+settimana=неделя
+anno=год
+tempo=время
+oggi=сегодня
+domani=завтра
+ieri=вчера
+casa=дом
+stanza=комната
+cucina=кухня
+finestra=окно
+porta=дверь
+strada=улица
+città=город
+paese=страна
+acqua=вода
+pane=хлеб
+cibo=еда
+caffè=кофе
+tè=чай
+soldi=деньги
+lavoro=работа
+scuola=школа
+libro=книга
+telefono=телефон
+macchina=машина
+treno=поезд
+amico=друг
+famiglia=семья
+bambino=ребёнок
+gente=люди
+nome=имя
+domanda=вопрос
+risposta=ответ
+parola=слово
+lingua=язык
+aiuto=помощь
+problema=проблема
+idea=идея
+cosa=вещь
+posto=место
+modo=способ
+vita=жизнь
+amore=любовь
+mano=рука
+occhio=глаз
+testa=голова
+piccolo=маленький
+grande=большой
+buono=хороший
+cattivo=плохой
+nuovo=новый
+vecchio=старый
+presto=рано
+tardi=поздно
+importante=важный
+difficile=трудный
+facile=лёгкий
+giusto=правильный
+sinistra=левый; слева
+destra=правый; справа
+vicino=рядом
+lontano=далеко
+caldo=горячий
+freddo=холодный
+bello=красивый
+felice=счастливый
+stanco=уставший
+essere=быть
+avere=иметь
+fare=делать
+andare=идти; ехать
+venire=приходить
+vedere=видеть
+dire=сказать
+sapere=знать
+pensare=думать
+volere=хотеть
+avere bisogno=нуждаться
+piacere=нравиться
+imparare=учить
+ricordare=помнить
+capire=понимать
+comprare=покупать
+mangiare=есть
+bere=пить
+dormire=спать
+sempre=всегда
+spesso=часто
+a volte=иногда
+mai=никогда
+qui=здесь
+lì=там
+adesso=сейчас
+forse=может быть
+molto=очень
+abbastanza=достаточно
+`,
+  fr: `
+matin=утро
+soir=вечер
+nuit=ночь
+jour=день
+semaine=неделя
+année=год
+temps=время
+aujourd'hui=сегодня
+demain=завтра
+hier=вчера
+maison=дом
+chambre=комната
+cuisine=кухня
+fenêtre=окно
+porte=дверь
+rue=улица
+ville=город
+pays=страна
+eau=вода
+pain=хлеб
+nourriture=еда
+café=кофе
+thé=чай
+argent=деньги
+travail=работа
+école=школа
+livre=книга
+téléphone=телефон
+voiture=машина
+train=поезд
+ami=друг
+famille=семья
+enfant=ребёнок
+gens=люди
+nom=имя
+question=вопрос
+réponse=ответ
+mot=слово
+langue=язык
+aide=помощь
+problème=проблема
+idée=идея
+chose=вещь
+lieu=место
+façon=способ
+vie=жизнь
+amour=любовь
+main=рука
+œil=глаз
+tête=голова
+petit=маленький
+grand=большой
+bon=хороший
+mauvais=плохой
+nouveau=новый
+vieux=старый
+tôt=рано
+tard=поздно
+important=важный
+difficile=трудный
+facile=лёгкий
+correct=правильный
+gauche=левый; слева
+droite=правый; справа
+près=рядом
+loin=далеко
+chaud=горячий
+froid=холодный
+beau=красивый
+heureux=счастливый
+fatigué=уставший
+être=быть
+avoir=иметь
+faire=делать
+aller=идти; ехать
+venir=приходить
+voir=видеть
+dire=сказать
+savoir=знать
+penser=думать
+vouloir=хотеть
+avoir besoin=нуждаться
+aimer=нравиться; любить
+apprendre=учить
+se souvenir=помнить
+comprendre=понимать
+acheter=покупать
+manger=есть
+boire=пить
+dormir=спать
+toujours=всегда
+souvent=часто
+parfois=иногда
+jamais=никогда
+ici=здесь
+là=там
+maintenant=сейчас
+peut-être=может быть
+très=очень
+assez=достаточно
+`,
+  es: `
+mañana=утро
+tarde=вечер
+noche=ночь
+día=день
+semana=неделя
+año=год
+tiempo=время
+hoy=сегодня
+mañana día=завтра
+ayer=вчера
+casa=дом
+habitación=комната
+cocina=кухня
+ventana=окно
+puerta=дверь
+calle=улица
+ciudad=город
+país=страна
+agua=вода
+pan=хлеб
+comida=еда
+café=кофе
+té=чай
+dinero=деньги
+trabajo=работа
+escuela=школа
+libro=книга
+teléfono=телефон
+coche=машина
+tren=поезд
+amigo=друг
+familia=семья
+niño=ребёнок
+gente=люди
+nombre=имя
+pregunta=вопрос
+respuesta=ответ
+palabra=слово
+idioma=язык
+ayuda=помощь
+problema=проблема
+idea=идея
+cosa=вещь
+lugar=место
+manera=способ
+vida=жизнь
+amor=любовь
+mano=рука
+ojo=глаз
+cabeza=голова
+pequeño=маленький
+grande=большой
+bueno=хороший
+malo=плохой
+nuevo=новый
+viejo=старый
+temprano=рано
+tarde tiempo=поздно
+importante=важный
+difícil=трудный
+fácil=лёгкий
+correcto=правильный
+izquierda=левый; слева
+derecha=правый; справа
+cerca=рядом
+lejos=далеко
+caliente=горячий
+frío=холодный
+bonito=красивый
+feliz=счастливый
+cansado=уставший
+ser=быть
+tener=иметь
+hacer=делать
+ir=идти; ехать
+venir=приходить
+ver=видеть
+decir=сказать
+saber=знать
+pensar=думать
+querer=хотеть
+necesitar=нуждаться
+gustar=нравиться
+aprender=учить
+recordar=помнить
+entender=понимать
+comprar=покупать
+comer=есть
+beber=пить
+dormir=спать
+siempre=всегда
+a menudo=часто
+a veces=иногда
+nunca=никогда
+aquí=здесь
+allí=там
+ahora=сейчас
+quizás=может быть
+muy=очень
+suficiente=достаточно
+`,
+};
+
+function notes(language: StudyLanguage) {
+  return WORDS[language]
+    .trim()
+    .split("\n")
+    .map((line) => {
+      const [front, back] = line.split("=");
+      return {
+        type: "basic" as const,
+        front: front!.trim(),
+        back: back!.trim(),
+        reverse: true,
+      };
+    });
+}
+
+export function starterDeckJson(presetId: StudyLanguage): string {
+  const preset = STARTER_DECK_PRESETS.find((item) => item.id === presetId);
+  if (!preset) throw new Error(`Unknown starter deck: ${presetId}`);
+  return JSON.stringify({
+    version: 1,
+    language: preset.language,
+    folder: `${preset.title} - ${preset.languageName}`,
+    notes: notes(preset.language),
+  });
+}
+
+/** Legacy export for old imports/tests: English preset. */
+export const STARTER_DECK_JSON = starterDeckJson("en");

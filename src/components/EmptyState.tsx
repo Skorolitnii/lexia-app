@@ -1,21 +1,24 @@
-import type { ReactNode } from 'react'
-import { motion } from 'motion/react'
-import { AddIcon, ImportIcon, StudyIcon } from '@/components/icons'
-import { Spinner } from '@/components/Loading'
-import { softSpring } from '@/components/motion'
-import { STARTER_DECK_SIZE, STARTER_DECK_TITLE } from '@/transfer/starterDeck'
-import { useStarterDeck } from '@/transfer/useStarterDeck'
-import { plural } from '@/study/format'
+import type { ReactNode } from "react";
+import { motion } from "motion/react";
+import { AddIcon, ImportIcon, StudyIcon } from "@/components/icons";
+import { Spinner } from "@/components/Loading";
+import { softSpring } from "@/components/motion";
+import {
+  STARTER_DECK_PRESETS,
+  STARTER_DECK_SIZE,
+} from "@/transfer/starterDeck";
+import { useStarterDeck } from "@/transfer/useStarterDeck";
+import { plural } from "@/study/format";
 
 interface Path {
-  key: string
-  icon: ReactNode
-  title: string
+  key: string;
+  icon: ReactNode;
+  title: string;
   /** Полное пояснение - десктоп (в плитке грида). */
-  description: string
+  description: string;
   /** Короткое пояснение - мобайл (в строке списка). */
-  short: string
-  onClick: () => void
+  short: string;
+  onClick: () => void;
 }
 
 /** Стрелка «дальше» в мобильных строках. */
@@ -35,7 +38,7 @@ function Chevron() {
     >
       <path d="m9 6 6 6-6 6" />
     </svg>
-  )
+  );
 }
 
 /**
@@ -56,35 +59,36 @@ export function EmptyState({
   onImport,
   onInstalled,
 }: {
-  title: string
-  description: string
-  onAddWord: () => void
+  title: string;
+  description: string;
+  onAddWord: () => void;
   /** Импорт колоды: одна модалка, внутри - табы «файл» и «из буфера». */
-  onImport: () => void
+  onImport: () => void;
   /** Стартовая колода записана - хозяину экрана пора перечитать данные. */
-  onInstalled: () => void
+  onInstalled: () => void;
 }) {
-  const starter = useStarterDeck(onInstalled)
+  const starter = useStarterDeck(onInstalled);
 
   const paths: Path[] = [
     {
-      key: 'add',
+      key: "add",
       icon: <AddIcon className="size-[18px]" strokeWidth={2.4} />,
-      title: 'Добавить слово',
-      description: 'Транскрипция и озвучка подтянутся сами - вводить нужно слово и перевод.',
-      short: 'Данные подтянутся сами',
+      title: "Добавить слово",
+      description:
+        "Транскрипция и озвучка подтянутся сами - вводить нужно слово и перевод.",
+      short: "Данные подтянутся сами",
       onClick: onAddWord,
     },
     {
-      key: 'import',
+      key: "import",
       icon: <ImportIcon className="size-[18px]" />,
-      title: 'Импорт колоды',
+      title: "Импорт колоды",
       description:
-        'JSON от нейросети - файлом или вставкой из буфера. Покажем превью и найдём дубликаты.',
-      short: 'JSON файлом или из буфера',
+        "JSON от нейросети - файлом или вставкой из буфера. Покажем превью и найдём дубликаты.",
+      short: "JSON файлом или из буфера",
       onClick: onImport,
     },
-  ]
+  ];
 
   return (
     <div className="flex flex-1 justify-center px-5 pt-8 pb-10 lg:px-10 lg:pt-[72px] lg:pb-14">
@@ -132,7 +136,9 @@ export function EmptyState({
                 </span>
                 <span className="hidden items-center gap-2.5 lg:flex">
                   <span className="shrink-0 text-brand-ink-deep">{p.icon}</span>
-                  <span className="text-[15.5px] font-extrabold text-ink">{p.title}</span>
+                  <span className="text-[15.5px] font-extrabold text-ink">
+                    {p.title}
+                  </span>
                 </span>
                 <span className="min-w-0 flex-1 lg:flex-none">
                   <span className="block text-[15px] font-extrabold text-ink lg:hidden">
@@ -152,41 +158,54 @@ export function EmptyState({
             ))}
           </div>
 
-          {/* Стартовая колода */}
+          {/* Стартовые колоды */}
           <div className="border-t border-line-soft bg-card-soft px-5 py-5 lg:px-[34px] lg:pt-[26px] lg:pb-8">
             <div className="mb-3.5 text-[14px] font-extrabold text-ink lg:text-[15px]">
               Или начните с готовой колоды
             </div>
-            <div className="flex items-center gap-3 rounded-[15px] border border-line bg-card px-4 py-3.5 lg:gap-4 lg:rounded-[14px]">
-              <div className="min-w-0 flex-1">
-                <div className="text-[14px] font-bold text-ink lg:text-[14.5px]">
-                  {STARTER_DECK_TITLE}
-                </div>
-                <div className="mt-0.5 text-[12.5px] text-muted lg:text-[13px]">
-                  {STARTER_DECK_SIZE}{' '}
-                  {plural(STARTER_DECK_SIZE, 'карточка', 'карточки', 'карточек')} · бытовая лексика
-                  с примерами
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => void starter.install()}
-                disabled={starter.busy}
-                className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[11px] border-[1.5px] border-brand bg-card px-3.5 py-2 text-[13px] font-bold text-brand-ink transition-colors hover:bg-brand-wash disabled:cursor-not-allowed disabled:border-line disabled:text-faint-2 lg:px-4 lg:text-[13.5px]"
-              >
-                {starter.busy && <Spinner size={13} />}
-                {/* Счётчика прогресса здесь больше нет: словарь и запись
-                    делает одна серверная ручка, и промежуточных шагов, о
-                    которых можно было бы отчитаться, у неё нет. */}
-                {starter.busy ? 'Добавляю…' : 'Добавить'}
-              </button>
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              {STARTER_DECK_PRESETS.map((preset) => {
+                const busy = starter.busyPresetId === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => void starter.install(preset.id)}
+                    disabled={starter.busyPresetId !== null}
+                    className="flex min-h-[96px] cursor-pointer flex-col justify-between rounded-[15px] border border-line bg-card px-4 py-3.5 text-left transition-colors hover:border-brand/45 hover:bg-brand-wash disabled:cursor-not-allowed disabled:text-faint-2 disabled:hover:border-line disabled:hover:bg-card"
+                  >
+                    <span className="block">
+                      <span className="block text-[14px] font-extrabold text-ink">
+                        {preset.title}
+                      </span>
+                      <span className="mt-0.5 block text-[13px] font-bold text-brand-ink">
+                        {preset.languageName}
+                      </span>
+                    </span>
+                    <span className="mt-3 flex items-center justify-between gap-3 text-[12.5px] font-semibold text-muted">
+                      <span>
+                        {STARTER_DECK_SIZE}{" "}
+                        {plural(
+                          STARTER_DECK_SIZE,
+                          "карточка",
+                          "карточки",
+                          "карточек",
+                        )}
+                      </span>
+                      {busy ? <Spinner size={13} /> : <Chevron />}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
             {starter.error && (
-              <div className="mt-2.5 text-[13px] font-semibold text-again">{starter.error}</div>
+              <div className="mt-2.5 text-[13px] font-semibold text-again">
+                {starter.error}
+              </div>
             )}
           </div>
         </div>
       </motion.div>
     </div>
-  )
+  );
 }
