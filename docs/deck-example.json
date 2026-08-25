@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "folder": "Animals",
+  "notes": [
+    {
+      "type": "basic",
+      "front": "otter",
+      "back": "выдра",
+      "reverse": true,
+      "tags": ["animals", "water"],
+      "examples": [
+        {
+          "text": "The otter cracked a shell on its belly.",
+          "translation": "Выдра разбила раковину на животе."
+        }
+      ],
+      "details": "**Часть речи:** существительное\n\n**Нюансы:** *sea otter* (калан) - другой вид, крупнее речной выдры."
+    },
+    {
+      "type": "basic",
+      "front": "camouflage",
+      "back": "маскировка, камуфляж",
+      "reverse": true,
+      "tags": ["animals", "defence"],
+      "examples": [
+        {
+          "text": "The moth's camouflage makes it invisible on bark.",
+          "translation": "Маскировка мотылька делает его невидимым на коре."
+        }
+      ],
+      "details": "**Часть речи:** существительное / глагол\n\nОт французского *camoufler* - «маскировать». Как глагол: *to camouflage oneself*."
+    },
+    {
+      "type": "basic",
+      "front": "predator",
+      "back": "хищник",
+      "reverse": true,
+      "tags": ["animals"],
+      "examples": [
+        {
+          "text": "Wolves are apex predators in this region.",
+          "translation": "Волки - высшие хищники в этом регионе."
+        }
+      ],
+      "details": "**Часть речи:** существительное\n\n**Антоним:** *prey* (добыча). **Прилагательное:** *predatory*."
+    },
+    {
+      "type": "basic",
+      "front": "burrow",
+      "back": "нора; рыть нору",
+      "reverse": false,
+      "tags": ["animals", "habitat"],
+      "examples": [
+        {
+          "text": "The rabbit disappeared into its burrow.",
+          "translation": "Кролик скрылся в своей норе."
+        }
+      ],
+      "details": "**Часть речи:** существительное и глагол.\n\nНе путать с *borrow* (одалживать) - разное произношение."
+    },
+    {
+      "type": "basic",
+      "front": "hibernate",
+      "back": "впадать в спячку",
+      "reverse": true,
+      "tags": ["animals", "winter"],
+      "examples": [
+        {
+          "text": "Bears hibernate through the coldest months.",
+          "translation": "Медведи впадают в спячку на самые холодные месяцы."
+        }
+      ],
+      "details": "**Часть речи:** глагол\n\n**Существительное:** *hibernation*. Летний аналог - *aestivate*."
+    },
+    {
+      "type": "basic",
+      "front": "herd",
+      "back": "стадо",
+      "reverse": false,
+      "tags": ["animals", "groups"],
+      "examples": [
+        {
+          "text": "A herd of deer crossed the road at dusk.",
+          "translation": "Стадо оленей пересекло дорогу в сумерках."
+        }
+      ],
+      "details": "**Часть речи:** существительное\n\nСобирательные названия групп различаются: *herd* (копытные), *flock* (птицы, овцы), *pack* (волки), *school* (рыбы)."
+    },
+    {
+      "type": "basic",
+      "front": "prey",
+      "back": "добыча, жертва",
+      "reverse": true,
+      "tags": ["animals"],
+      "examples": [
+        {
+          "text": "The owl spotted its prey from above.",
+          "translation": "Сова заметила добычу сверху."
+        }
+      ],
+      "details": "**Часть речи:** существительное\n\nОмофон *pray* (молиться) - звучат одинаково, пишутся по-разному."
+    },
+    {
+      "type": "basic",
+      "front": "nocturnal",
+      "back": "ночной (о животных)",
+      "reverse": false,
+      "tags": ["animals", "behaviour"],
+      "examples": [
+        {
+          "text": "Hedgehogs are nocturnal and forage after sunset.",
+          "translation": "Ежи ведут ночной образ жизни и кормятся после заката."
+        }
+      ],
+      "details": "**Часть речи:** прилагательное\n\n**Антоним:** *diurnal* (дневной)."
+    },
+    {
+      "type": "cloze",
+      "front": "The fox is a {{cunning::хитрый}} animal that hunts alone.",
+      "back": "Лиса - хитрое животное, которое охотится в одиночку.",
+      "tags": ["animals", "traits"],
+      "details": "*Cunning* - хитрый, изворотливый. О животных чаще всего именно про лису."
+    },
+    {
+      "type": "cloze",
+      "front": "Whales {{migrate::мигрируют}} thousands of kilometres every year.",
+      "back": "Киты мигрируют тысячи километров каждый год.",
+      "tags": ["animals", "movement"],
+      "details": "*Migrate* - совершать сезонные перемещения. Существительное - *migration*."
+    }
+  ]
+}

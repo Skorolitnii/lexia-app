@@ -1,0 +1,25 @@
+[build]
+  command = "yarn build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# SPA-fallback: react-router обрабатывает маршруты на клиенте, поэтому
+# прямой заход на /library должен отдавать index.html, а не 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Service worker и манифест не кэшируем: иначе autoUpdate PWA
+# не увидит новую сборку и приложение застрянет на старой версии.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

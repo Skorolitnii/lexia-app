@@ -1,0 +1,424 @@
+@import 'tailwindcss';
+
+/* ============================================================
+   Lexia - дизайн-система «Тёплый»
+   Токены сняты напрямую с макетов (english-app-design).
+   Tailwind v4: CSS-first через @theme.
+   ============================================================ */
+
+@theme {
+  /* Шрифты (self-host через @fontsource, импорт в main.tsx).
+     Onest - полная кириллица, латиница и русский одним шрифтом. */
+  --font-sans: 'Onest Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Поверхности / фоны */
+  --color-canvas: #e7e5df; /* фон страницы */
+  --color-surface: #fbf3ea; /* «телефон» / панель контента */
+  --color-rail: #f4ebde; /* второстепенные панели, мягкие кнопки */
+  --color-rail-hover: #efe4d4; /* наведение на мягкую кнопку (макет «Новое слово v3») */
+  --color-sidebar: #ffffff; /* десктопный рейл (макет «Меню hover», 3c) - чисто белый */
+  --color-card: #ffffff; /* карточки, поля ввода */
+  --color-card-soft: #faf6ef; /* мягкая карточка (статы финиша) */
+
+  /* Текст */
+  --color-ink: #2c2a26; /* основной */
+  --color-ink-2: #4b463d; /* примеры */
+  --color-muted: #6f675c; /* вторичный текст */
+  --color-muted-2: #7c7567;
+  --color-faint: #9b8f7e; /* приглушённые подписи */
+  --color-faint-2: #a59a8c;
+  --color-hint: #b3a594; /* транскрипция, плейсхолдеры */
+  --color-label: #8a7d6b; /* uppercase-лейблы секций */
+  --color-tab-idle: #bdb1a0; /* неактивный пункт таб-бара */
+
+  /* Границы / разделители */
+  --color-line: #ece3d6; /* границы рейла/полей */
+  --color-line-soft: #f0e8da; /* разделители списков */
+  --color-line-faint: #f4ede1; /* строки таблиц */
+  --color-track: #f1e8db; /* трек слайдера / сегмент-контрол */
+
+  /* Акцент (зелёный) - базис системы, OKLCH */
+  --color-brand: oklch(0.66 0.13 158);
+  --color-brand-strong: oklch(0.58 0.15 158);
+  --color-brand-ink: oklch(0.48 0.1 158); /* текст на светлом брендовом фоне */
+  --color-brand-ink-deep: oklch(0.42 0.09 158); /* активный пункт навигации */
+  --color-brand-soft: oklch(0.94 0.04 158); /* бейдж EN→RU */
+  --color-brand-wash: oklch(0.95 0.03 158); /* фон активного пункта */
+  --color-brand-tint: oklch(0.97 0.015 158); /* блок перевода на обороте */
+  --color-brand-muted: oklch(0.8 0.06 158); /* залитая кнопка в disabled (вход) */
+
+  /* Экран входа (макет «Тёплый - Логин») */
+  --color-login-bg: #fdf1e4; /* фон страницы входа - теплее surface */
+  --color-icon-idle: #c4b8a5; /* иконка в поле, пока не в фокусе */
+
+  /* Аватар аккаунта в сайдбаре (макет «Меню hover», 3c) - залитый brand с белыми
+     инициалами, в тон активному пункту меню. */
+  --color-avatar: oklch(0.53 0.13 158);
+  --color-avatar-ink: #ffffff;
+
+  /* Меню сайдбара (макет «Меню hover», 3c): белый рейл, текст пунктов почти
+     чёрный, активный - насыщенная зелёная строка с тенью. */
+  --color-nav-ink: #241f1a; /* пункт меню (темнее общего ink) */
+  --color-nav-hover: #f0e7d9; /* заливка при наведении */
+  --color-nav-active: oklch(0.53 0.13 158); /* активная строка */
+  --color-sidebar-line: #e2d6c3; /* правая граница рейла, плотнее общей line */
+
+  /* Семантика рейтингов FSRS */
+  --color-again: oklch(0.52 0.15 25);
+  --color-again-soft: oklch(0.95 0.04 25);
+  --color-again-sub: oklch(0.62 0.1 25); /* подпись интервала на кнопке */
+  --color-hard: oklch(0.52 0.13 65);
+  --color-hard-soft: oklch(0.95 0.05 75);
+  --color-hard-sub: oklch(0.62 0.1 65);
+  --color-good: oklch(0.66 0.13 158); /* = brand */
+  --color-good-soft: oklch(0.95 0.03 158);
+  --color-good-sub: oklch(0.92 0.05 158); /* подпись на залитой кнопке Good */
+  --color-easy: oklch(0.52 0.13 245);
+  --color-easy-soft: oklch(0.95 0.04 235);
+  --color-easy-sub: oklch(0.62 0.1 245);
+
+  /* Статистика: градации зелёного от бледной к насыщенной.
+     Тот же тон 158, что и акцент, - шкала читается как «больше = темнее». */
+  --color-scale-1: oklch(0.88 0.05 158); /* новые / пустой столбец активности */
+  --color-scale-2: oklch(0.82 0.08 158);
+  --color-scale-3: oklch(0.78 0.1 158); /* учу */
+  --color-scale-4: oklch(0.72 0.12 158);
+  --color-scale-5: oklch(0.62 0.13 158); /* зрелые */
+
+  /* Заливки баров рейтингов: светлее кнопочных - на белой карточке
+     кнопочные (0.52) читались бы тяжелее, чем задумано в макете. */
+  --color-again-bar: oklch(0.6 0.16 25);
+  --color-hard-bar: oklch(0.62 0.13 65);
+  --color-easy-bar: oklch(0.62 0.13 245);
+
+  /* Состояния загрузки. Плейсхолдер чуть плотнее `line`: на белой карточке
+     `line` почти не виден, а скелетон обязан читаться как «здесь будет контент». */
+  --color-skeleton: #ece4d7;
+  --color-skeleton-sheen: #f6f0e6; /* блик, бегущий по плейсхолдеру */
+
+  /* Радиусы (из макетов) */
+  --radius-field: 14px; /* поля ввода, чипы */
+  --radius-card: 20px; /* десктоп-панель */
+  --radius-card-lg: 30px; /* карточка изучения (мобайл) */
+  --radius-phone: 38px; /* корпус телефона */
+  --radius-pill: 999px;
+
+  /* Тени */
+  --shadow-card: 0 2px 8px rgba(40, 34, 24, 0.05);
+  --shadow-flip: 0 16px 40px -22px rgba(40, 34, 24, 0.55);
+  --shadow-phone: 0 18px 50px -16px rgba(40, 34, 24, 0.32);
+  --shadow-panel: 0 24px 60px -20px rgba(40, 34, 24, 0.4);
+  --shadow-brand: 0 8px 16px -6px oklch(0.66 0.13 158 / 0.55);
+  --shadow-focus: 0 0 0 4px oklch(0.66 0.13 158 / 0.12); /* кольцо фокуса поля формы */
+  --shadow-nav-active: 0 10px 20px -12px oklch(0.53 0.13 158 / 0.95); /* активный пункт меню */
+  --shadow-fab: 0 10px 22px -5px oklch(0.66 0.13 158 / 0.6);
+  --shadow-flip-lg: 0 18px 44px -22px rgba(40, 34, 24, 0.5); /* карточка на десктопе */
+  --shadow-pill: 0 2px 8px rgba(40, 34, 24, 0.08); /* топбар-пилюли мобайла */
+  --shadow-summary: 0 30px 70px -26px rgba(40, 34, 24, 0.5); /* оверлей итога */
+  --shadow-streak: 0 14px 30px -14px oklch(0.66 0.13 158 / 0.7); /* герой-блок серии */
+  --shadow-login-card: 0 20px 50px -22px rgba(40, 34, 24, 0.35); /* карточка входа */
+}
+
+/* Селект: нативная стрелка (в Chrome она вплотную к бордеру) заменена своей.
+   Обычный CSS, а не arbitrary-класс Tailwind - inline-SVG с кавычками
+   и пробелами внутри [] не компилируется. */
+.select-field {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 11px 7px;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' fill='none'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23a59a8c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* Поле email на экране входа (макет «Тёплый - Логин»). Обычным CSS, а не
+   Tailwind-состояниями: glow-кольцо и смена цвета иконки на фокусе -
+   производные от --color-brand с прозрачностью, а oklch(... / .16) с пробелами
+   не компилируется в arbitrary-классе. `:focus-within` на обёртке ловит фокус
+   инпута и красит иконку-конверт заодно. */
+.login-field {
+  border: 1.5px solid var(--color-line);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.login-field:focus-within {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 4px oklch(0.66 0.13 158 / 0.16);
+}
+.login-field:focus-within .login-icon {
+  color: var(--color-brand-strong);
+}
+/* WebKit-автозаполнение рисует свой фон/цвет на самом <input>. Обёртка скруглена,
+   а инпут прямоугольный - без этого autofill-фон вылезает за радиус в углах и
+   красит поле синим. Гасим фон (тень внутрь цветом поля) и наследуем радиус,
+   чтобы заливка не заходила в скруглённые углы. */
+.login-field input:-webkit-autofill,
+.login-field input:-webkit-autofill:hover,
+.login-field input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-ink);
+  -webkit-box-shadow: 0 0 0 100px var(--color-surface) inset;
+  border-radius: var(--radius-field);
+  caret-color: var(--color-ink);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Герой-блок серии (статистика). Обычным CSS, а не arbitrary-классом:
+   в `bg-[linear-gradient(...)]` пробелы внутри oklch() ломают разбор. */
+.streak-hero {
+  background: linear-gradient(135deg, oklch(0.7 0.13 158), oklch(0.62 0.13 165));
+}
+
+/* Ползунок оттенка папки. Трек - радуга в OKLCH при тех же L/C, что у пресетов,
+   поэтому позиция ползунка = сам цвет. Обычным CSS (не Tailwind): градиент из
+   oklch() с пробелами не компилируется в arbitrary-классе, а псевдоэлементы
+   thumb Tailwind не покрывает. */
+.hue-slider {
+  background: linear-gradient(
+    to right,
+    oklch(0.64 0.14 0),
+    oklch(0.64 0.14 60),
+    oklch(0.64 0.14 120),
+    oklch(0.64 0.14 180),
+    oklch(0.64 0.14 240),
+    oklch(0.64 0.14 300),
+    oklch(0.64 0.14 360)
+  );
+}
+.hue-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid oklch(0.9 0.01 90);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+}
+.hue-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid oklch(0.9 0.01 90);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+}
+
+/* Рендер Markdown в info-панели `details`. Tailwind-reset снимает стили с
+   h/p/ul, поэтому задаём их вручную под «тёплую» тему. */
+.markdown-body {
+  color: var(--color-ink-2);
+  font-size: 15px;
+  line-height: 1.7;
+}
+.markdown-body > :first-child {
+  margin-top: 0;
+}
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  margin: 1.2em 0 0.5em;
+  font-weight: 800;
+  color: var(--color-ink);
+  line-height: 1.3;
+}
+.markdown-body h1 {
+  font-size: 1.15em;
+}
+.markdown-body h2,
+.markdown-body h3 {
+  font-size: 1.05em;
+}
+.markdown-body p {
+  margin: 0.7em 0;
+}
+.markdown-body strong {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+.markdown-body em {
+  font-style: italic;
+}
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.7em 0;
+  padding-left: 1.4em;
+}
+.markdown-body ul {
+  list-style: disc;
+}
+.markdown-body ol {
+  list-style: decimal;
+}
+.markdown-body li {
+  margin: 0.3em 0;
+}
+.markdown-body a {
+  color: var(--color-brand-ink);
+  text-decoration: underline;
+}
+.markdown-body code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--color-track);
+  padding: 0.1em 0.4em;
+  border-radius: 6px;
+}
+.markdown-body blockquote {
+  margin: 0.7em 0;
+  padding-left: 1em;
+  border-left: 3px solid var(--color-line);
+  color: var(--color-faint);
+}
+
+/* ============================================================
+   Состояния загрузки
+   ============================================================ */
+
+/* Скелетон: плейсхолдер формы будущего контента. Блик пробегает слева направо
+   через background-position, а не через двигающийся псевдоэлемент, - меньше
+   слоёв и не нужен overflow-контейнер на каждом кусочке. */
+.skeleton {
+  background-color: var(--color-skeleton);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-skeleton-sheen) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-sheen 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-sheen {
+  from {
+    background-position: -100% 0;
+  }
+  to {
+    background-position: 100% 0;
+  }
+}
+
+/* Спиннер: дуга на кольце. `currentColor` сверху - крутится цвет текста
+   кнопки/экрана, поэтому одна компонента годится и на белом, и на brand. */
+.spinner {
+  border-radius: 9999px;
+  border-style: solid;
+  border-color: currentColor;
+  border-top-color: transparent;
+  animation: spinner-rotate 0.7s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Глобальное правило `prefers-reduced-motion` (ниже) глушит длительность всех
+   анимаций до 0.01мс. Для декора это правильно, но спиннер превратился бы в
+   застывшую дугу, а скелетон - в статичную заливку, то есть в мусор на экране.
+   Возвращаем им смысл без движения: спиннер - пульсация прозрачностью вместо
+   вращения, скелетон - ровный фон без бегущего блика. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    background-image: none;
+  }
+  .spinner {
+    border-top-color: currentColor;
+    opacity: 0.55;
+    animation: spinner-fade 1.2s ease-in-out infinite !important;
+    animation-duration: 1.2s !important;
+  }
+  @keyframes spinner-fade {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+}
+
+/* Базовый слой */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Видимый фокус для клавиатуры (§8.9, доступность). Дизайн ведёт кнопки и
+   пункты меню без рамок, а часть полей глушит нативный контур (`outline-none`
+   + своё кольцо `--shadow-focus`) - в итоге при обходе по Tab не видно, где
+   находишься.
+
+   `:focus-visible`, а не `:focus`: браузер сам решает, что фокус пришёл с
+   клавиатуры, и контур не вспыхивает после клика мышью. Кольцо рисуем
+   `outline` c `offset`, а не `box-shadow`: outline не участвует в раскладке,
+   поэтому ничего не сдвигает и не обрезается на `overflow: hidden`.
+
+   Поля ввода сюда НЕ входят: у них фокус уже показан своим кольцом
+   (`--shadow-focus` в `fieldCls`, `.login-field:focus-within`), и общий контур
+   лёг бы третьим индикатором поверх бордера и кольца. Правило закрывает ровно
+   то, что дизайн ведёт без рамок: кнопки, ссылки, пункты навигации.
+
+   `:where()` держит специфичность на нуле - правило компонента перекрывает
+   это без `!important`. */
+:where(a, button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* iOS PWA: учитываем safe-area */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* iOS Safari/WebKit увеличивает страницу при фокусе в поле, у которого шрифт
+   мельче 16px, и обратно уже не отъезжает - на iPhone любой инпут в модалке
+   (JSON колоды, поля «Нового слова») дёргал масштаб. Порог зашит в движок,
+   отключить его нечем: `user-scalable=no` в viewport WebKit игнорирует (и он
+   ломал бы зум пальцами, что недопустимо по доступности).
+
+   Поэтому поднимаем шрифт полей до 16px - но только там, где точный указатель
+   отсутствует, то есть на тач-устройствах. Десктоп сохраняет размеры из
+   макета, ради которых тут вообще стоят 13–15px.
+
+   `!important` нужен: классы Tailwind (`text-[15px]`, `text-[13px]`) - это
+   утилиты той же специфичности, объявленные позже, и без него они бы
+   победили. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
