@@ -62,6 +62,12 @@ describe('authErrorMessage', () => {
       'Не отправилось: Internal server error',
     )
   })
+
+  it('пустую smtp-ошибку объясняет как проблему отправки письма', () => {
+    expect(authErrorMessage({ status: 500, message: '{}' })).toContain(
+      'Проверьте SMTP в Supabase',
+    )
+  })
 })
 
 describe('otpErrorMessage', () => {
