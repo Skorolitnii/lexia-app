@@ -27,13 +27,38 @@ import {
 } from "@/library/useLibrary";
 import { useDebounced } from "@/lib/useDebounced";
 import { useSpeechContext } from "@/speech/useSpeechContext";
-import { warmAudio } from "@/supabase/functions";
+import { importDeck, warmAudio } from "@/supabase/functions";
 import { ImportPanel } from "@/transfer/ImportPanel";
+import { parseDeck } from "@/transfer/deck";
+import {
+  STARTER_DECK_PRESETS,
+  STARTER_DECK_SIZE,
+  starterDeckJson,
+  type StarterDeckPreset,
+} from "@/transfer/starterDeck";
 import { clozePlainText } from "@/study/cloze";
 import { plural } from "@/study/format";
 
 /** Что открыто в модалке: новая заметка или существующая. */
 type Editing = { draft: NoteDraft; note: NoteRow | null } | null;
+
+function normalizedName(value: string): string {
+  return value.trim().toLocaleLowerCase();
+}
+
+function starterPresetForFolder(folder: FolderRow | null | undefined) {
+  if (!folder) return null;
+  const name = normalizedName(folder.name);
+  return (
+    STARTER_DECK_PRESETS.find((preset) =>
+      name.includes(normalizedName(preset.languageName)),
+    ) ?? null
+  );
+}
+
+function starterFolderName(preset: StarterDeckPreset): string {
+  return `${preset.title} - ${preset.languageName}`;
+}
 
 /**
  * URL для «Учить». Выбрана папка - заходим сразу в сессию (`go=1`); «все слова» -
@@ -61,6 +86,8 @@ export function LibraryPage() {
   );
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(openImport);
+  const [starterImporting, setStarterImporting] = useState(false);
+  const [starterError, setStarterError] = useState<string | null>(null);
   // Редактор папки: { folder: null } - создание, { folder } - правка.
   // `name` - заготовка имени (пришли из поиска папки в форме слова или из
   // имени папки в колоде импорта).
@@ -122,6 +149,21 @@ export function LibraryPage() {
   const currentFolder = lib.folders.find(
     (f) => (f.folder?.id ?? null) === scope,
   );
+  const starterPreset = starterPresetForFolder(currentFolder?.folder);
+  const starterAlreadyLoaded =
+    starterPreset !== null &&
+    lib.folders.some(
+      (item) =>
+        item.noteCount >= STARTER_DECK_SIZE &&
+        normalizedName(item.folder?.name ?? "") ===
+          normalizedName(starterFolderName(starterPreset)),
+    );
+  const canInstallStarterHere =
+    scope !== null &&
+    currentFolder?.folder &&
+    starterPreset &&
+    lib.totalInFolder === 0 &&
+    !starterAlreadyLoaded;
 
   const saveFolder = async (patch: { name: string; color: string | null }) => {
     if (!folderEdit || writing.current) return;
@@ -251,6 +293,23 @@ export function LibraryPage() {
     }
   };
 
+  const installStarterInCurrentFolder = async () => {
+    if (!scope || !starterPreset || starterImporting || writing.current) return;
+    writing.current = true;
+    setStarterImporting(true);
+    setStarterError(null);
+    try {
+      const deck = parseDeck(starterDeckJson(starterPreset.id));
+      await importDeck(deck.notes, scope, rate);
+      lib.reload();
+    } catch {
+      setStarterError("Не удалось загрузить базовые слова");
+    } finally {
+      writing.current = false;
+      setStarterImporting(false);
+    }
+  };
+
   if (lib.loading) return <LibrarySkeleton />;
 
   // Чтение не удалось - предлагаем повтор. Показывать при этом пустой список
@@ -312,6 +371,19 @@ export function LibraryPage() {
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
+              {canInstallStarterHere && (
+                <button
+                  type="button"
+                  onClick={() => void installStarterInCurrentFolder()}
+                  disabled={starterImporting}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-[11px] border border-brand/35 bg-brand-soft px-3.5 py-2 text-[13.5px] font-bold text-brand-ink transition-colors hover:border-brand/60 hover:bg-brand-wash disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <ImportIcon className="size-3.5" />
+                  {starterImporting
+                    ? "Загружаю…"
+                    : `Загрузить ${STARTER_DECK_SIZE} базовых слов`}
+                </button>
+              )}
               {lib.totalInFolder > 0 && (
                 <button
                   type="button"
@@ -341,6 +413,12 @@ export function LibraryPage() {
                 Импорт
               </button>
             </div>
+          </div>
+        )}
+
+        {starterError && (
+          <div className="mb-4 rounded-[12px] border border-again/20 bg-again-soft px-4 py-3 text-[13.5px] font-semibold text-again">
+            {starterError}
           </div>
         )}
 
